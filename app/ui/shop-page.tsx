@@ -6,7 +6,7 @@ import Dashboard from "./dashboard";
 export default async function ShopPage({
   initialView = "calendar",
 }: {
-  initialView?: "calendar" | "reports" | "orders" | "products" | "cashflow" | "customers";
+  initialView?: "calendar" | "reports" | "orders" | "processing" | "products" | "cashflow" | "customers";
 }) {
   const shop = await requireShop();
   const data = await shopData();

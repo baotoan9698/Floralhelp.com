@@ -161,6 +161,7 @@ export async function saveOrder(form: FormData) {
   }
   const result = await data.saveOrder(id, parsed.data);
   if (result.error) return result;
+  revalidatePath("/processing");
   if (id) revalidatePath(`/orders/${id}`);
   revalidatePath("/cashflow");
   revalidatePath("/customers");
@@ -175,13 +176,14 @@ export async function changeOrderStatus(id: string, status: string) {
   if (!parsed.success || typeof id !== "string" || !id) return { error: "Trạng thái đơn hàng không hợp lệ." };
   const result = await data.updateOrderStatus(id, parsed.data);
   if (!result.error) {
-    for (const path of ["/", "/orders", `/orders/${id}`, "/reports"]) revalidatePath(path);
+    for (const path of ["/", "/orders", "/processing", `/orders/${id}`, "/reports"]) revalidatePath(path);
   }
   return result;
 }
 export async function removeOrder(id: string) {
   const data = await shopData();
   const result = await data.deleteOrder(id);
+  revalidatePath("/processing");
   revalidatePath(`/orders/${id}`);
   revalidatePath("/cashflow");
   revalidatePath("/");

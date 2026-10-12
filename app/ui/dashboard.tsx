@@ -7,6 +7,7 @@ import {
   Menu,
   House,
   ClipboardList,
+  Columns3,
   Settings,
   LogOut,
   Plus,
@@ -31,6 +32,7 @@ import Products from "./products";
 import Cashflow from "./cashflow";
 import Customers from "./customers";
 import OrdersTable from "./orders-table";
+import OrderProcessing from "./order-processing";
 import OrderForm from "./order-form";
 import OrderHistoryLoader from "./order-history-loader";
 import OrderItemSummary from "./order-item-summary";
@@ -109,7 +111,7 @@ export default function Dashboard({
   products: ProductView[];
   cashEntries: CashView[];
   customers: CustomerView[];
-  initialView?: "calendar" | "reports" | "orders" | "products" | "cashflow" | "customers";
+  initialView?: "calendar" | "reports" | "orders" | "processing" | "products" | "cashflow" | "customers";
 }) {
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -151,6 +153,8 @@ export default function Dashboard({
   const [query, setQuery] = useState("");
   const [orderFrom, setOrderFrom] = useState("");
   const [orderTo, setOrderTo] = useState("");
+  const [draftOrderFrom, setDraftOrderFrom] = useState("");
+  const [draftOrderTo, setDraftOrderTo] = useState("");
   const [receivablesOnly, setReceivablesOnly] = useState(false);
   const orderList = useRef<HTMLElement>(null);
   const view = initialView;
@@ -189,7 +193,7 @@ export default function Dashboard({
   const today = dateKey(new Date());
   if (view === "orders") {
     filtered.sort((a, b) =>
-      b.orderDate.localeCompare(a.orderDate) || b.orderTime.localeCompare(a.orderTime),
+      b.code.localeCompare(a.code, "vi", { numeric: true }),
     );
   }
   const paginationKey = JSON.stringify([prefix, day, receivablesOnly, filter, query, orderFrom, orderTo, pageSize]);
@@ -267,6 +271,7 @@ export default function Dashboard({
           {[
             { label: "Tổng quan", path: "/", view: "calendar", icon: House },
             { label: "Danh sách đơn", path: "/orders", view: "orders", icon: ClipboardList },
+            { label: "Xử Lí đơn", path: "/processing", view: "processing", icon: Columns3 },
             { label: "Sản phẩm", path: "/products", view: "products", icon: Flower2 },
             { label: "Báo cáo", path: "/reports", view: "reports", icon: ChartNoAxesCombined },
             { label: "Khách hàng", path: "/customers", view: "customers", icon: Users },
@@ -304,6 +309,9 @@ export default function Dashboard({
             onClick={() => router.push("/orders")}
           >
             <ClipboardList size={20} /> Danh sách đơn
+          </button>
+          <button className={view === "processing" ? "active" : ""} onClick={() => router.push("/processing")}>
+            <Columns3 size={20} /> Xử Lí đơn
           </button>
           <button
             className={view === "products" ? "active" : ""}
@@ -350,7 +358,9 @@ export default function Dashboard({
           <button ref={menuToggle} className="icon-button menu-toggle" aria-label="Mở menu" aria-expanded={menuOpen} aria-controls="shop-menu" onClick={() => { menuDialog.current?.showModal(); setMenuOpen(true); }}><Menu size={24} /></button>
         </header>
         <main className="dashboard">
-          {view === "customers" ? (
+          {view === "processing" ? (
+            <OrderProcessing orders={orders} />
+          ) : view === "customers" ? (
             <Customers customers={customers} />
           ) : view === "cashflow" ? (
             <Cashflow entries={cashEntries} orders={orders} />
@@ -571,13 +581,7 @@ export default function Dashboard({
                     />
                   </label>
                 </div>
-                {view === "orders" && <div className="order-date-filter" role="group" aria-label="Lọc theo ngày tạo đơn">
-                  <strong>Ngày tạo đơn</strong>
-                  <label>Từ ngày<input type="date" value={orderFrom} max={orderTo || undefined} onChange={(e) => setOrderFrom(e.target.value)} /></label>
-                  <label>Đến ngày<input type="date" value={orderTo} min={orderFrom || undefined} onChange={(e) => setOrderTo(e.target.value)} /></label>
-                  {(orderFrom || orderTo) && <button type="button" className="text-button" onClick={() => { setOrderFrom(""); setOrderTo(""); }}>Xóa lọc ngày</button>}
-                  {orderFrom && orderTo && orderFrom > orderTo && <span role="alert">Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.</span>}
-                </div>}
+                <div className="orders-filter-toolbar">
                 <div className="filters">
                   {Object.entries({ all: "Tất cả", ...statuses }).map(
                     ([key, label]) => (
@@ -590,6 +594,17 @@ export default function Dashboard({
                       </button>
                     ),
                   )}
+                </div>
+                {view === "orders" && <form className="order-date-filter" aria-label="Lọc theo ngày tạo đơn" onSubmit={(event) => {
+                  event.preventDefault();
+                  if (draftOrderFrom && draftOrderTo && draftOrderFrom > draftOrderTo) return;
+                  setOrderFrom(draftOrderFrom); setOrderTo(draftOrderTo);
+                }}>
+                  <input aria-label="Ngày bắt đầu" title="Ngày tạo đơn bắt đầu" type="date" value={draftOrderFrom} max={draftOrderTo || undefined} onChange={(e) => setDraftOrderFrom(e.target.value)} />
+                  <span aria-hidden="true">–</span>
+                  <input aria-label="Ngày kết thúc" title="Ngày tạo đơn kết thúc" type="date" value={draftOrderTo} min={draftOrderFrom || undefined} onChange={(e) => setDraftOrderTo(e.target.value)} />
+                  <button type="submit" className="secondary">Áp dụng</button>
+                </form>}
                 </div>
                 {filtered.length === 0 ? (
                   <div className="empty card">
