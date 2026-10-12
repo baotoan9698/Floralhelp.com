@@ -541,12 +541,13 @@ input.order-checkbox { appearance: auto; width: 18px; height: 18px; min-height: 
 .processing-board.is-dragging { user-select: none; }
 .processing-periods { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 12px 0; }
 .processing-periods strong { font-size: 12px; margin-right: 5px; }
-.processing-periods button { padding: 7px 11px; font-size: 12px; border-radius: 10px; border: 1px solid #e8c5d7; background: #fffdfa; }
+.processing-periods button { padding: 7px 11px; min-height: 32px; height: 32px; line-height: 16px; font-size: 12px; border-radius: 10px; border: 1px solid #e8c5d7; background: #fffdfa; white-space: nowrap; }
 .processing-periods button.active { background: #fbd8e8; border-color: #b86f93; color: #814568; box-shadow: 0 2px 0 #dcb0c7; font-weight: 800; }
-.processing-custom-range { display: flex; justify-content: flex-end; align-items: end; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-.processing-custom-range label { display: grid; gap: 4px; font-size: 12px; }
-.processing-custom-range input { padding: 7px; font-size: 12px; min-width: 0; }
-.processing-custom-range button { padding: 8px 12px; font-size: 12px; }
+.processing-custom-range { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 7px; margin: 0 0 0 auto; }
+.processing-custom-range > span { display: flex; align-items: center; height: 32px; }
+.processing-custom-range > button { display: inline-flex; align-items: center; justify-content: center; align-self: center; margin: 0; height: 32px; min-height: 32px; box-sizing: border-box; }
+.processing-custom-range input { padding: 5px 7px; height: 32px; box-sizing: border-box; width: 135px; font-size: 12px; min-width: 0; text-align: center; }
+.processing-custom-range input::-webkit-datetime-edit { text-align: center; }
 .processing-card { padding: 10px; cursor: grab; touch-action: none; }
 .processing-card:active { cursor: grabbing; }
 .processing-card :is(a,select) { cursor: pointer; touch-action: manipulation; }

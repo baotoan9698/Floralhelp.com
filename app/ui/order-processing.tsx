@@ -89,12 +89,14 @@ export default function OrderProcessing({ orders }: { orders: OrderView[] }) {
       <Link className="primary" href="/orders/new"><Plus size={19} />Tạo đơn hàng</Link>
     </div>
     <div className="processing-toolbar"><span>{visible.length} đơn hàng</span><label className="search"><Search size={18} /><input aria-label="Tìm đơn cần xử lí" placeholder="Tìm mã đơn, khách hàng, số điện thoại…" value={query} onChange={event => setQuery(event.target.value)} /></label></div>
-    <div className="processing-periods" role="group" aria-label="Lọc ngày giao hoa"><strong>Ngày giao hoa</strong>{[["today","Hôm nay"],["tomorrow","Ngày mai"],["week","7 ngày tới"],["all","Tất cả"],["custom","Khoảng ngày"]].map(([value,label]) => <button type="button" key={value} className={preset===value ? "active" : ""} aria-pressed={preset===value} onClick={()=>choosePeriod(value)}>{label}</button>)}</div>
-    {preset === "custom" && <form className="processing-custom-range" aria-label="Khoảng ngày giao hoa" onSubmit={event=>{event.preventDefault(); if(draft.from && draft.to && draft.from>draft.to) return; setRange(draft);}}>
-      <label>Từ ngày<input type="date" value={draft.from} max={draft.to || undefined} onChange={event=>setDraft({...draft,from:event.target.value})}/></label>
-      <label>Đến ngày<input type="date" value={draft.to} min={draft.from || undefined} onChange={event=>setDraft({...draft,to:event.target.value})}/></label>
-      <button className="secondary" type="submit">Áp dụng</button>
-    </form>}
+    <div className="processing-periods" role="group" aria-label="Lọc ngày giao hoa"><strong>Ngày giao hoa</strong>{[["today","Hôm nay"],["tomorrow","Ngày mai"],["week","7 ngày tới"],["all","Tất cả"],["custom","Khoảng ngày"]].map(([value,label]) => <button type="button" key={value} className={preset===value ? "active" : ""} aria-pressed={preset===value} onClick={()=>choosePeriod(value)}>{label}</button>)}
+    <form className="processing-custom-range" aria-label="Khoảng ngày giao hoa" onSubmit={event=>{event.preventDefault(); if(draft.from && draft.to && draft.from>draft.to) return; setRange(draft); setPreset("custom");}}>
+      <input aria-label="Từ ngày" type="date" value={draft.from} max={draft.to || undefined} onChange={event=>setDraft({...draft,from:event.target.value})}/>
+      <span aria-hidden="true">→</span>
+      <input aria-label="Đến ngày" type="date" value={draft.to} min={draft.from || undefined} onChange={event=>setDraft({...draft,to:event.target.value})}/>
+      <button type="submit">Áp dụng</button>
+    </form>
+    </div>
     <p className="processing-feedback" role={error ? "alert" : "status"}>{error || (pending ? "Đang cập nhật trạng thái…" : message || "Kéo trực tiếp thẻ đơn sang cột khác để đổi trạng thái.")}</p>
     <div ref={board} className={`processing-board${drag?.active ? " is-dragging" : ""}`} aria-label="Bảng xử lí đơn hàng">
       {(Object.keys(statuses) as Status[]).map(status => {
