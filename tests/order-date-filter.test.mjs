@@ -8,10 +8,13 @@ import { existsSync, mkdirSync } from 'node:fs';
 test('Order date range includes boundaries, ignores delivery date, resets page and selection on desktop/mobile', {timeout:120000}, async()=>{
   const db=new PrismaClient();
   const browser=await chromium.launch({headless:true,executablePath:['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)});
-  let shop;
+  let shop, otherShop;
   try {
     shop=await db.shop.create({data:{name:'Date filter test',email:`date-filter-${Date.now()}@example.com`,passwordHash:'unused',accessStatus:'active'}});
     const customer=await db.customer.create({data:{shopId:shop.id,code:'KH1',name:'Test',phone:'0000000000',address:'',identityKey:'test'}});
+    otherShop=await db.shop.create({data:{name:'Other test shop',email:`other-status-${Date.now()}@example.com`,passwordHash:'unused',accessStatus:'active'}});
+    const otherCustomer=await db.customer.create({data:{shopId:otherShop.id,code:'KH1',name:'Other',phone:'0000000000',address:'',identityKey:'test'}});
+    const otherOrder=await db.order.create({data:{shopId:otherShop.id,customerId:otherCustomer.id,code:'OTHER',product:'Other flower',customer:'Other',phone:'0000000000',address:'',date:'2026-12-31',time:'09:00',orderDate:'2026-10-01',price:200000}});
     await db.order.createMany({data:Array.from({length:12},(_,i)=>({shopId:shop.id,customerId:customer.id,code:`DH${String(i).padStart(3,'0')}`,product:'Test flower',customer:'Test',phone:'0000000000',address:'',date:'2026-12-31',time:'09:00',orderDate:['2026-10-01','2026-10-05','2026-10-10'][Math.floor(i/4)],orderTime:'12:00',price:100000}))});
     const context=await browser.newContext();
     const token=randomBytes(32).toString('hex');
@@ -46,12 +49,49 @@ test('Order date range includes boundaries, ignores delivery date, resets page a
       await range.getByLabel('Từ ngày',{exact:true}).fill('2026-10-10');
       await expect(rows).toHaveCount(4);
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      await expect(page.locator('footer')).toHaveText('Powered by Floral Help');
+      const target = await db.order.findFirstOrThrow({where:{shopId:shop.id,code:'DH008'}});
+      const status = list.getByLabel('Trạng thái đơn DH008');
+      const nextStatus = width === 1440 ? 'preparing' : 'done';
+      await status.selectOption(nextStatus);
+      await expect(status).toBeEnabled();
+      await expect(status).toHaveValue(nextStatus);
+      await expect(page).toHaveURL(/\/orders$/);
+      const saved = await db.order.findUniqueOrThrow({where:{id:target.id}});
+      assert.equal(saved.status,nextStatus);
+      assert.equal(saved.price,target.price);
+      assert.equal(saved.orderDate,target.orderDate);
+      const history = await db.orderHistory.findFirstOrThrow({where:{orderId:target.id},orderBy:{createdAt:'desc'}});
+      assert.equal(history.actorId,shop.id);
+      assert.equal(JSON.parse(history.changes)[0].field,'Trạng thái');
+      await page.reload();
+      await expect(list.getByLabel('Trạng thái đơn DH008')).toHaveValue(nextStatus);
+      if(width===1440) {
+        const tamper=async route=>{
+          const request=route.request();
+          if(request.method()==='POST' && request.headers()['next-action']) {
+            const args=JSON.parse(request.postData());
+            assert.equal(args[0],target.id);
+            args[0]=otherOrder.id;
+            await route.continue({postData:JSON.stringify(args)});
+          } else await route.continue();
+        };
+        await page.route('**/orders',tamper);
+        await list.getByLabel('Trạng thái đơn DH008').selectOption('done');
+        await expect(list.getByRole('alert')).toContainText('Không tìm thấy đơn hàng');
+        await expect(list.getByLabel('Trạng thái đơn DH008')).toHaveValue(nextStatus);
+        assert.equal((await db.order.findUniqueOrThrow({where:{id:otherOrder.id}})).status,'pending');
+        assert.equal(await db.orderHistory.count({where:{orderId:otherOrder.id}}),0);
+        await page.unroute('**/orders',tamper);
+        await page.reload();
+      }
       mkdirSync('artifacts',{recursive:true});
       await page.screenshot({path:`artifacts/order-date-filter-${width}.png`,fullPage:true});
     }
   } finally {
     await browser.close();
     if(shop) await db.shop.delete({where:{id:shop.id}});
+    if(otherShop) await db.shop.delete({where:{id:otherShop.id}});
     await db.$disconnect();
   }
 });

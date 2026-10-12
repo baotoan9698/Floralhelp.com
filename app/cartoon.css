@@ -486,6 +486,14 @@ input.order-checkbox { appearance: auto; width: 18px; height: 18px; min-height: 
 .order-date-filter label { display: grid; gap: 5px; font-size: 12px; min-width: 0; }
 .order-date-filter input { width: 170px; max-width: 100%; box-sizing: border-box; }
 .order-date-filter [role="alert"] { flex-basis: 100%; color: #b42318; font-size: 12px; }
+.order-status-control { display: inline-flex; flex-direction: column; gap: 4px; max-width: 180px; }
+.order-status-control .order-status-select { width: auto; max-width: 100%; min-height: 34px; padding: 6px 26px 6px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; }
+.order-status-select.pending { background-color: #fff4d7; color: #986818; }
+.order-status-select.preparing { background-color: #f9e5f0; color: #a24278; }
+.order-status-select.delivering { background-color: #e6f0ff; color: #3c69a0; }
+.order-status-select.done { background-color: #e5f5e9; color: #35714a; }
+.order-status-select:disabled { opacity: .65; cursor: wait; }
+.order-status-control small { font-size: 11px; }
 @media (max-width: 600px) {
   .order-date-filter > strong { flex-basis: 100%; }
   .order-date-filter label { flex: 1 1 40%; }

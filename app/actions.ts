@@ -169,6 +169,16 @@ export async function saveOrder(form: FormData) {
   revalidatePath("/reports");
   return { error: "" };
 }
+export async function changeOrderStatus(id: string, status: string) {
+  const data = await shopData();
+  const parsed = orderSchema.shape.status.safeParse(status);
+  if (!parsed.success || typeof id !== "string" || !id) return { error: "Trạng thái đơn hàng không hợp lệ." };
+  const result = await data.updateOrderStatus(id, parsed.data);
+  if (!result.error) {
+    for (const path of ["/", "/orders", `/orders/${id}`, "/reports"]) revalidatePath(path);
+  }
+  return result;
+}
 export async function removeOrder(id: string) {
   const data = await shopData();
   const result = await data.deleteOrder(id);

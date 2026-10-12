@@ -722,7 +722,7 @@ export default function Dashboard({
             </>
           )}
           <footer>
-            Được chăm chút cho những người yêu hoa <Flower2 size={13} /> Floralhelp
+            Powered by Floral Help
           </footer>
         </main>
       </div>

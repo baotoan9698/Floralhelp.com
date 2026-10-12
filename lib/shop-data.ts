@@ -3,6 +3,7 @@ import { db } from "./db";
 import { requireShop } from "./auth";
 import { Prisma } from "@prisma/client";
 import type { OrderInput, ProductInput, CashInput, CustomerInput } from "./validation";
+import { statuses } from "./validation";
 import { orderChanges } from "./order-history";
 
 // The tenant identity is derived only from the authenticated server session.
@@ -113,6 +114,19 @@ export async function shopData() {
       }
       return { error: "Chưa thể cấp mã đơn. Vui lòng thử lại." };
     },
+    updateOrderStatus: (id: string, status: OrderInput["status"]) => db.$transaction(async (tx) => {
+      // Use the same shop lock as full order saves so history reflects the committed value.
+      await tx.shop.update({ where: { id: shopId }, data: { orderSequence: { increment: 0 } } });
+      const order = await tx.order.findFirst({ where: { id, shopId }, select: { status: true } });
+      if (!order) return { error: "Không tìm thấy đơn hàng trong shop của bạn." };
+      if (order.status === status) return { error: "" };
+      await tx.order.updateMany({ where: { id, shopId }, data: { status } });
+      await tx.orderHistory.create({ data: {
+        orderId: id, shopId, actorId: shop.id, actorName: shop.name, actorEmail: shop.email,
+        action: "updated", changes: JSON.stringify([{ field: "Trạng thái", before: statuses[order.status as keyof typeof statuses] ?? order.status, after: statuses[status] }]),
+      } });
+      return { error: "" };
+    }),
     cashEntries: () => db.cashEntry.findMany({ where: { shopId }, orderBy: [{ date: "desc" }, { createdAt: "desc" }], select: { id: true, type: true, date: true, title: true, category: true, amount: true, note: true } }),
     createCashEntry: (data: CashInput) => db.cashEntry.create({ data: { ...data, shopId } }),
     updateCashEntry: (id: string, data: CashInput) => db.cashEntry.updateMany({ where: { id, shopId }, data }),
