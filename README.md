@@ -6,7 +6,7 @@
 - Quản trị: https://admin.floralhelp.com
 - Repository: https://github.com/baotoan9698/Floralhelp.com
 
-GitHub lưu source; hiện chưa cấu hình tự động deploy khi push. Các hướng dẫn Vercel bên dưới là phương án triển khai thay thế.
+VPS tự kiểm tra nhánh `main` mỗi phút và triển khai commit mới sau khi build thành công. Xem quy trình và cách kiểm tra lỗi trong tài liệu VPS. Các hướng dẫn Vercel bên dưới là phương án triển khai thay thế.
 
 ### Quản trị và thời hạn sử dụng
 

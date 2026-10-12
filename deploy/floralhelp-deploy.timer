@@ -1,0 +1,7 @@
+[Unit]
+Description=Check Floralhelp main every minute
+[Timer]
+OnBootSec=60s
+OnUnitInactiveSec=60s
+[Install]
+WantedBy=timers.target

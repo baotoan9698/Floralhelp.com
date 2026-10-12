@@ -5,7 +5,7 @@
 - Ubuntu 24.04, Node.js 22, PostgreSQL 16, Nginx.
 - Website shop: https://sale.floralhelp.com
 - Website quản trị: https://admin.floralhelp.com
-- Source trên server: `/srv/floralhelp/app`, chạy bằng tài khoản hệ thống `floralhelp`.
+- Source đang chạy: `/srv/floralhelp/current`, trỏ đến bản trong `/srv/floralhelp/releases/<commit>`, chạy bằng tài khoản hệ thống `floralhelp`. Bản triển khai ban đầu còn ở `/srv/floralhelp/app`.
 - Cấu hình bí mật: `/etc/floralhelp/app.env`, chỉ root đọc. Không đưa file này vào Git.
 - PostgreSQL và Next.js chỉ lắng nghe trên localhost. Nginx phục vụ truy cập công khai.
 - VPS ban đầu có khoảng 1 GB RAM, 20 GB ổ đĩa, thêm 3 GB swap để hỗ trợ build. Đây là cấu hình thử nghiệm, chưa kiểm thử tải 100 shop.
@@ -52,8 +52,20 @@ Backup trên cùng VPS không bảo vệ khi mất toàn bộ VPS. Cần thêm b
 
 ## Cập nhật source
 
-Bản đầu triển khai từ snapshot source trên máy phát triển, gồm cả thay đổi chưa push Git. Không tự chạy `git pull` trong thư mục app.
+Push vào nhánh `main` của `baotoan9698/Floralhelp.com` để cập nhật. Timer `floralhelp-deploy.timer` kiểm tra mỗi phút bằng deploy key GitHub chỉ đọc, không sử dụng GitHub Actions. Thời gian lên web còn phụ thuộc thời gian cài dependencies và build trên VPS.
 
-Lần cập nhật tiếp theo cần đóng gói source mới, giữ lại cấu hình bí mật và `.private-storage`, sao lưu database trước, cài dependencies từ lockfile, áp dụng migrations, build thành công rồi mới restart. Migrations có thể làm phiên bản cũ không còn tương thích; cần kiểm tra trước khi rollback. Không dùng `npm run dev:local` trên VPS production.
+Quy trình: fetch commit → tạo thư mục release → `npm ci` → build → backup → migration → chuyển symlink → restart → kiểm tra HTTP. Giữ bản code đang chạy và bản ngay trước đó. Ảnh nằm riêng ở `/srv/floralhelp/shared/private-storage`; cấu hình bí mật và database không bị thay khi cập nhật code.
+
+Build lỗi thì giữ nguyên bản đang chạy. Kiểm tra HTTP sau restart lỗi thì chuyển lại code trước đó. **Không tự rollback database migration**; migration phá vỡ tương thích cần kế hoạch riêng. Commit bị lỗi được ghi nhận để tránh build lại liên tục; sau khi sửa, push commit mới.
+
+```bash
+systemctl list-timers floralhelp-deploy.timer
+journalctl -u floralhelp-deploy -n 100 --no-pager
+cat /etc/floralhelp/deployed-revision
+```
+
+Tạm dừng tự deploy: `systemctl stop floralhelp-deploy.timer`. Bật lại: `systemctl start floralhelp-deploy.timer`. Việc dừng timer không hủy lượt deploy đang chạy.
+
+Mã cấu hình nằm trong `deploy/`. Script cài tại `/usr/local/sbin/floralhelp-deploy` và unit systemd do root sở hữu; sửa các file trong Git không tự cài lại script vận hành, cần cập nhật chúng qua SSH. Không dùng `npm run dev:local` trên VPS production.
 
 HTTPS dùng Certbot/Let's Encrypt và timer gia hạn tự động. Giữ bản ghi DNS trỏ đúng VPS và cổng 80/443 hoạt động để gia hạn.

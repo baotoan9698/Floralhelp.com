@@ -481,3 +481,13 @@ input.order-checkbox { appearance: auto; width: 18px; height: 18px; min-height: 
 .menu-drawer nav button { font-size: 12px; gap: 7px; padding: 12px 6px; white-space: normal; text-align: left; }
 .menu-drawer .logout { font-size: 12px; padding: 10px 6px; gap: 7px; }
 .new-order-page { max-width: none; width: 100%; box-sizing: border-box; }
+.order-date-filter { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 12px 0 16px; }
+.order-date-filter > strong { align-self: center; font-size: 13px; }
+.order-date-filter label { display: grid; gap: 5px; font-size: 12px; min-width: 0; }
+.order-date-filter input { width: 170px; max-width: 100%; box-sizing: border-box; }
+.order-date-filter [role="alert"] { flex-basis: 100%; color: #b42318; font-size: 12px; }
+@media (max-width: 600px) {
+  .order-date-filter > strong { flex-basis: 100%; }
+  .order-date-filter label { flex: 1 1 40%; }
+  .order-date-filter input { width: 100%; }
+}

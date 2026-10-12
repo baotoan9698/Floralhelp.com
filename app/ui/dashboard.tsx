@@ -149,6 +149,8 @@ export default function Dashboard({
   }, [menuOpen]);
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [orderFrom, setOrderFrom] = useState("");
+  const [orderTo, setOrderTo] = useState("");
   const [receivablesOnly, setReceivablesOnly] = useState(false);
   const orderList = useRef<HTMLElement>(null);
   const view = initialView;
@@ -179,6 +181,7 @@ export default function Dashboard({
       (view === "orders" || !day || o.date === day) &&
       (view === "orders" || !receivablesOnly || o.price > o.paidAmount) &&
       (filter === "all" || o.status === filter) &&
+      (view !== "orders" || ((!orderFrom || o.orderDate >= orderFrom) && (!orderTo || o.orderDate <= orderTo))) &&
       `${o.code} ${o.customerRecord.code} ${o.product} ${o.items?.map((item) => item.name).join(" ") ?? ""} ${o.customer} ${o.phone}`
         .toLocaleLowerCase("vi")
         .includes(query.toLocaleLowerCase("vi")),
@@ -189,7 +192,7 @@ export default function Dashboard({
       b.orderDate.localeCompare(a.orderDate) || b.orderTime.localeCompare(a.orderTime),
     );
   }
-  const paginationKey = JSON.stringify([prefix, day, receivablesOnly, filter, query, pageSize]);
+  const paginationKey = JSON.stringify([prefix, day, receivablesOnly, filter, query, orderFrom, orderTo, pageSize]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = pagination.key === paginationKey ? Math.min(pagination.page, pageCount) : 1;
   if (pagination.key !== paginationKey || pagination.page !== currentPage) {
@@ -197,7 +200,7 @@ export default function Dashboard({
   }
   const pageStart = (currentPage - 1) * pageSize;
   const visibleOrders = filtered.slice(pageStart, pageStart + pageSize);
-  const selectionKey = JSON.stringify([view, filter, query]);
+  const selectionKey = JSON.stringify([view, filter, query, orderFrom, orderTo]);
   if (selection.key !== selectionKey) setSelection({ key: selectionKey, ids: [] });
   const selectedIds = new Set(selection.key === selectionKey ? selection.ids.filter((id) => filtered.some((order) => order.id === id)) : []);
   function selectOrders(ids: string[], checked: boolean) {
@@ -568,6 +571,13 @@ export default function Dashboard({
                     />
                   </label>
                 </div>
+                {view === "orders" && <div className="order-date-filter" role="group" aria-label="Lọc theo ngày tạo đơn">
+                  <strong>Ngày tạo đơn</strong>
+                  <label>Từ ngày<input type="date" value={orderFrom} max={orderTo || undefined} onChange={(e) => setOrderFrom(e.target.value)} /></label>
+                  <label>Đến ngày<input type="date" value={orderTo} min={orderFrom || undefined} onChange={(e) => setOrderTo(e.target.value)} /></label>
+                  {(orderFrom || orderTo) && <button type="button" className="text-button" onClick={() => { setOrderFrom(""); setOrderTo(""); }}>Xóa lọc ngày</button>}
+                  {orderFrom && orderTo && orderFrom > orderTo && <span role="alert">Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.</span>}
+                </div>}
                 <div className="filters">
                   {Object.entries({ all: "Tất cả", ...statuses }).map(
                     ([key, label]) => (
