@@ -21,7 +21,7 @@ set -a
 source /etc/floralhelp/app.env
 set +a
 cd "$release"
-runuser -u floralhelp -- npm ci --no-audit --no-fund
+runuser -u floralhelp -- npm ci --include=dev --no-audit --no-fund
 runuser -u floralhelp -- env NODE_OPTIONS=--max-old-space-size=1536 npm run build
 # Back up before applying database changes; never reset the database.
 /usr/local/sbin/floralhelp-backup
