@@ -15,6 +15,15 @@ export default function PaymentFields({ order, suggestedPrice }: { order: OrderV
   const subtotal = suggestedPrice?.value ?? (order === "new" ? 0 : order.price - (order.shippingFee ?? 0) + (order.discount ?? 0));
   const total = subtotal + Number(shipping) - Number(discount);
   const paid = rows.reduce((sum, row) => sum + Number(row.amount), 0);
+  const paymentLimit = Math.max(0, total);
+  if (paid > paymentLimit) {
+    let remaining = paymentLimit;
+    setRows(rows.map((row) => {
+      const amount = Math.min(Number(row.amount), remaining);
+      remaining -= amount;
+      return { ...row, amount: String(amount) };
+    }));
+  }
   const payments = rows.filter((row) => Number(row.amount) !== 0).map((row) => ({ amount: Number(row.amount), method: row.method }));
   return <div className="order-payment-columns">
     <section className="order-section order-payment payment-value"><h3>Thanh toán</h3>
@@ -30,7 +39,7 @@ export default function PaymentFields({ order, suggestedPrice }: { order: OrderV
       <input type="hidden" name="paidAmount" value={paid} />
       <div className="payment-installment-list">
       {rows.map((row, index) => <div className="payment-installment" key={row.key}>
-        <label>Số tiền · lần {index + 1}<MoneyInput ariaLabel={`Số tiền thanh toán ${index + 1}`} name={`payment-${row.key}`} value={row.amount} onChange={(amount) => setRows(rows.map((item) => item.key === row.key ? { ...item, amount } : item))} /></label>
+        <label>Số tiền · lần {index + 1}<MoneyInput ariaLabel={`Số tiền thanh toán ${index + 1}`} name={`payment-${row.key}`} value={row.amount} max={Math.max(0, paymentLimit - (paid - Number(row.amount)))} onChange={(amount) => setRows(rows.map((item) => item.key === row.key ? { ...item, amount } : item))} /></label>
         <label>Phương thức<select aria-label={`Phương thức thanh toán ${index + 1}`} value={row.method} onChange={(event) => setRows(rows.map((item) => item.key === row.key ? { ...item, method: event.target.value as OrderPaymentInput["method"] } : item))}>
           {row.legacy && <option value="unknown">{paymentMethods.unknown}</option>}
           <option value="cash">Tiền mặt</option><option value="transfer">Chuyển khoản</option>

@@ -1,4 +1,12 @@
-# Floralhelp · Next.js trên Vercel
+# Floralhelp · Quản lý shop hoa
+
+Ứng dụng Next.js + PostgreSQL, hiện triển khai trên VPS Ubuntu. Xem [hướng dẫn vận hành VPS](docs/VPS.md) về service, database, backup và cập nhật source.
+
+- Website: https://sale.floralhelp.com
+- Quản trị: https://admin.floralhelp.com
+- Repository: https://github.com/baotoan9698/Floralhelp.com
+
+GitHub lưu source; hiện chưa cấu hình tự động deploy khi push. Các hướng dẫn Vercel bên dưới là phương án triển khai thay thế.
 
 ### Quản trị và thời hạn sử dụng
 

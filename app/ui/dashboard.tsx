@@ -155,6 +155,10 @@ export default function Dashboard({
   const router = useRouter();
   const [editing, setEditingState] = useState<OrderView | "new" | null>(null);
   function setEditing(value: OrderView | "new" | null) {
+    if (value === "new") {
+      router.push(`/orders/new${day ? `?date=${encodeURIComponent(day)}` : ""}`);
+      return;
+    }
     setEditingState(value);
   }
   const [deleting, setDeleting] = useState<OrderView | null>(null);

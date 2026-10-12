@@ -4,7 +4,6 @@ import {
   Flower2,
   ArrowRight,
   CalendarDays,
-  ShieldCheck,
   Smartphone,
 } from "lucide-react";
 import { authenticate } from "../actions";
@@ -37,9 +36,6 @@ export default function AuthForm({ notice }: { notice?: string }) {
           <div className="story-flower">✳</div>
           <div className="feature">
             <CalendarDays /> Lịch giao hàng rõ ràng mỗi ngày
-          </div>
-          <div className="feature">
-            <ShieldCheck /> Dữ liệu riêng biệt cho từng shop
           </div>
           <div className="feature">
             <Smartphone /> Thuận tiện trên máy tính và điện thoại
@@ -133,9 +129,6 @@ export default function AuthForm({ notice }: { notice?: string }) {
               <ArrowRight size={18} />
             </button>
           </form>
-          <p className="auth-foot">
-            <ShieldCheck size={15} /> Mỗi tài khoản là một shop độc lập.
-          </p>
         </div>
       </section>
     </main>

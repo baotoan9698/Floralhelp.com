@@ -480,3 +480,4 @@ input.order-checkbox { appearance: auto; width: 18px; height: 18px; min-height: 
 }
 .menu-drawer nav button { font-size: 12px; gap: 7px; padding: 12px 6px; white-space: normal; text-align: left; }
 .menu-drawer .logout { font-size: 12px; padding: 10px 6px; gap: 7px; }
+.new-order-page { max-width: none; width: 100%; box-sizing: border-box; }

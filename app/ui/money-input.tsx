@@ -9,11 +9,13 @@ export default function MoneyInput({
   value,
   onChange,
   ariaLabel,
+  max,
 }: {
   name: string;
   value: string;
   onChange: (value: string) => void;
   ariaLabel?: string;
+  max?: number;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const caret = useRef<number | null>(null);
@@ -27,7 +29,8 @@ export default function MoneyInput({
   function update(text: string, position: number) {
     const before = text.slice(0, position).replace(/\D/g, "").length;
     const digits = text.replace(/\D/g, "");
-    const raw = digits.replace(/^0+(?=\d)/, "");
+    const normalized = digits.replace(/^0+(?=\d)/, "");
+    const raw = max !== undefined && Number(normalized) > max ? String(Math.max(0, max)) : normalized;
     const count = Math.max(0, before - (digits.length - raw.length));
     const formatted = format(raw);
     let next = 0;
