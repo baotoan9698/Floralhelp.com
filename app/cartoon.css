@@ -318,6 +318,14 @@ footer { color:#977286; font-size:11px; }
 .product-suggestions p { font-size: 11px; padding: 10px; margin: 0; background: #fff0f6; }
 .order-item-search .quick-add-product { padding: 5px 8px; margin-top: 5px; font-size: 11px; min-height: 28px; box-shadow: none; }
 .quick-add-slot { height: 34px; }
+.trial-welcome { max-width:560px; margin:8vh auto; padding:32px; text-align:center; }
+.trial-welcome > svg { color:#27834c; }
+.trial-welcome h1 { font-size:26px; }
+.trial-welcome dl { padding:16px; background:#fff0f6; border-radius:14px; text-align:left; }
+.trial-welcome dl > div { display:flex; justify-content:space-between; gap:16px; padding:8px 0; flex-wrap:wrap; }
+.trial-welcome dd { margin:0; font-weight:800; }
+.trial-welcome .primary { display:inline-flex; margin-top:12px; }
+@media(max-width:600px) { .trial-welcome { margin:24px 12px; padding:24px 18px; } }
 .admin-page { max-width:1280px; margin:0 auto; padding:28px 20px; }
 .admin-page header { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
 .admin-search { display:flex; gap:10px; max-width:600px; }

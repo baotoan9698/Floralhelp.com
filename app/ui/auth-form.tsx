@@ -56,7 +56,7 @@ export default function AuthForm({ notice }: { notice?: string }) {
           <p>
             {mode === "login"
               ? "Một ngày mới, những bó hoa mới đang chờ."
-              : "Tạo tài khoản để có không gian quản lý riêng."}
+              : "Tạo shop và bắt đầu dùng thử miễn phí 15 ngày."}
           </p>
           <div className="auth-tabs">
             <button

@@ -1,0 +1,11 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {chromium,expect} from '@playwright/test';import {PrismaClient} from '@prisma/client';import {existsSync} from 'node:fs';
+test('registration activates a 15-day trial and shows its expiry; expired trials are blocked',{timeout:60000},async()=>{
+ const db=new PrismaClient(),email=`trial-${Date.now()}@example.invalid`;
+ const browser=await chromium.launch({headless:true,executablePath:['C:/Program Files/Google/Chrome/Application/chrome.exe','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)});
+ try{const page=await browser.newPage({viewport:{width:390,height:844}});await page.goto('http://127.0.0.1:3000/login');await page.getByRole('button',{name:'Tạo shop mới',exact:true}).click();await page.getByLabel('Tên shop',{exact:true}).fill('Shop thử 15 ngày');await page.getByLabel('Email',{exact:true}).fill(email);await page.getByLabel('Mật khẩu',{exact:true}).fill('Trial-test-password-2026!');await page.getByRole('button',{name:'Tạo shop',exact:true}).click();await expect(page).toHaveURL(/\/welcome$/);await expect(page.getByRole('heading',{name:'Đăng ký sử dụng thành công'})).toBeVisible();await expect(page.getByText('Dùng Thử',{exact:true})).toBeVisible();
+ const shop=await db.shop.findUniqueOrThrow({where:{email}});assert.equal(shop.accessStatus,'active');assert.equal(shop.accessUntil-shop.createdAt,15*86400000);const until=new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'short',timeStyle:'short'}).format(shop.accessUntil);await expect(page.getByText(until,{exact:true})).toBeVisible();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'artifacts/trial-success-mobile.png'});
+ await page.getByRole('link',{name:'Bắt đầu sử dụng'}).click();await expect(page).toHaveURL('http://127.0.0.1:3000/');
+ await db.shop.update({where:{id:shop.id},data:{accessUntil:new Date(Date.now()-1000)}});await page.goto('http://127.0.0.1:3000/orders');await expect(page).toHaveURL(/reason=expired/);await expect(page.getByText('Bạn cần gia hạn để được tiếp tục sử dụng',{exact:true})).toBeVisible();
+ }finally{await browser.close();await db.shop.deleteMany({where:{email}});await db.authAttempt.deleteMany({where:{key:email}});await db.$disconnect();}
+});

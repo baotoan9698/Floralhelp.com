@@ -53,11 +53,13 @@ export async function authenticate(_: { error: string }, form: FormData) {
     return { error: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 15 phút." };
   let shop;
   try {
-    if (mode === "register")
+    if (mode === "register") {
+      const createdAt = new Date();
       shop = await db.shop.create({
-        data: { email, name, passwordHash: hashPassword(password) },
+        data: { email, name, passwordHash: hashPassword(password), createdAt,
+          accessStatus: "active", accessUntil: new Date(createdAt.getTime() + 15 * 86400000) },
       });
-    else {
+    } else {
       shop = await db.shop.findUnique({ where: { email } });
       const fallback = "00000000000000000000000000000000:" + "00".repeat(64);
       const valid = verifyPassword(password, shop?.passwordHash ?? fallback);
@@ -78,7 +80,7 @@ export async function authenticate(_: { error: string }, form: FormData) {
     return { error: accessMessages[reason] ?? "Shop chưa được cấp quyền sử dụng." };
   }
   await createSession(shop.id);
-  redirect("/");
+  redirect(mode === "register" ? "/welcome" : "/");
 }
 export async function logout() {
   await deleteSession();
