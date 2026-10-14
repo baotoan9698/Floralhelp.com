@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { CheckCheck, Clock, Flower2, GripVertical, MessageSquare, Plus, Search, Truck, UserRound } from "lucide-react";
-import { changeOrderStatus } from "@/app/actions";
+import { updateOrderStatus } from "@/lib/update-order-status";
+import { useRouter } from "next/navigation";
 import { statuses, type OrderView } from "@/lib/validation";
 import OrderStatusSelect from "./order-status-select";
 import { vietnamToday } from "@/lib/dates";
@@ -14,6 +15,7 @@ const money = (value: number) => new Intl.NumberFormat("vi-VN").format(value) + 
 const addDays = (day: string, amount: number) => { const date = new Date(`${day}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + amount); return date.toISOString().slice(0, 10); };
 
 export default function OrderProcessing({ orders }: { orders: OrderView[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [preset, setPreset] = useState("today");
   const [range, setRange] = useState(() => ({ from: vietnamToday(), to: vietnamToday() }));
@@ -77,10 +79,10 @@ export default function OrderProcessing({ orders }: { orders: OrderView[] }) {
     setError(""); setMessage("");
     start(async () => {
       try {
-        const result = await changeOrderStatus(order.id, target);
+        const result = await updateOrderStatus(order.id, target);
         if (result.error) setError(result.error);
-        else setMessage(`${order.code} đã chuyển sang ${statuses[target]}.`);
-      } catch { setError("Chưa chuyển được đơn. Vui lòng tải lại trang và thử lại."); }
+        else { setMessage(`${order.code} đã chuyển sang ${statuses[target]}.`); router.refresh(); }
+      } catch { router.refresh(); setError("Mất kết nối khi cập nhật. Đang đồng bộ lại trạng thái; vui lòng kiểm tra rồi thử lại."); }
     });
   }
   return <section className="processing-page">

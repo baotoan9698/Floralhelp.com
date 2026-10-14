@@ -76,20 +76,20 @@ test('Order date range includes boundaries, ignores delivery date, resets page a
       if(width===1440) {
         const tamper=async route=>{
           const request=route.request();
-          if(request.method()==='POST' && request.headers()['next-action']) {
+          if(request.method()==='PATCH') {
             const args=JSON.parse(request.postData());
-            assert.equal(args[0],target.id);
-            args[0]=otherOrder.id;
+            assert.equal(args.id,target.id);
+            args.id=otherOrder.id;
             await route.continue({postData:JSON.stringify(args)});
           } else await route.continue();
         };
-        await page.route('**/orders',tamper);
+        await page.route('**/api/orders/status',tamper);
         await list.getByLabel('Trạng thái đơn DH008').selectOption('done');
         await expect(list.getByRole('alert')).toContainText('Không tìm thấy đơn hàng');
         await expect(list.getByLabel('Trạng thái đơn DH008')).toHaveValue(nextStatus);
         assert.equal((await db.order.findUniqueOrThrow({where:{id:otherOrder.id}})).status,'pending');
         assert.equal(await db.orderHistory.count({where:{orderId:otherOrder.id}}),0);
-        await page.unroute('**/orders',tamper);
+        await page.unroute('**/api/orders/status',tamper);
         await page.reload();
       }
       mkdirSync('artifacts',{recursive:true});

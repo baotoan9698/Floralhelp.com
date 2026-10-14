@@ -23,6 +23,13 @@ test('Processing board: desktop drag, touch drag, saved history, search and navi
     await db.session.create({data:{id:createHash('sha256').update(token).digest('hex'),shopId:shop.id,expiresAt:new Date(Date.now()+600000)}});
     await context.addCookies([{name:'floralhelp_session',value:token,url:'http://127.0.0.1:3000'}]);
     const page=await context.newPage();
+    const requestHeaders={Origin:'http://127.0.0.1:3000'};
+    const protectedOrder=await db.order.findFirstOrThrow({where:{shopId:shop.id}});
+    const invalidOrigin=await context.request.patch('http://127.0.0.1:3000/api/orders/status',{headers:{Origin:'https://other.example'},data:{id:protectedOrder.id,status:'done'}});
+    assert.equal(invalidOrigin.status(),403);
+    const missingOrder=await context.request.patch('http://127.0.0.1:3000/api/orders/status',{headers:requestHeaders,data:{id:'not-owned',status:'done'}});
+    assert.equal(missingOrder.status(),400);
+    assert.equal((await db.order.findUniqueOrThrow({where:{id:protectedOrder.id}})).status,protectedOrder.status);
     await page.goto('http://127.0.0.1:3000/orders');
     await page.getByRole('button',{name:'Xử Lí đơn',exact:true}).click();
     await expect(page).toHaveURL(/\/processing$/);

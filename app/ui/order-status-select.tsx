@@ -1,9 +1,11 @@
 "use client";
 import { useState, useTransition } from "react";
-import { changeOrderStatus } from "@/app/actions";
+import { updateOrderStatus } from "@/lib/update-order-status";
+import { useRouter } from "next/navigation";
 import { statuses, type OrderView } from "@/lib/validation";
 
 export default function OrderStatusSelect({ order }: { order: OrderView }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
   return <div className="order-status-control" onClick={(event) => event.stopPropagation()}>
@@ -11,8 +13,8 @@ export default function OrderStatusSelect({ order }: { order: OrderView }) {
       const status = event.target.value;
       setError("");
       start(async () => {
-        try { const result = await changeOrderStatus(order.id, status); setError(result.error); }
-        catch { setError("Chưa đổi được trạng thái. Vui lòng tải lại trang và thử lại."); }
+        try { const result = await updateOrderStatus(order.id, status); setError(result.error); if (!result.error) router.refresh(); }
+        catch { router.refresh(); setError("Mất kết nối khi cập nhật. Vui lòng kiểm tra trạng thái và thử lại."); }
       });
     }}>
       {Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
