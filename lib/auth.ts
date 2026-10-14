@@ -10,6 +10,14 @@ import { db } from "./db";
 import { accessReason } from "./access";
 import { redirect } from "next/navigation";
 const cookieName = "floralhelp_session";
+// Persistent browser cookie, refreshed during the shop's session check.
+const sessionCookieDays = 400;
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+};
 export function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
@@ -25,17 +33,14 @@ const digest = (token: string) =>
   createHash("sha256").update(token).digest("hex");
 export async function createSession(shopId: string) {
   const token = randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 7 * 86400000);
+  const expiresAt = new Date(Date.now() + sessionCookieDays * 86400000);
   await db.session.create({ data: { id: digest(token), shopId, expiresAt } });
   (await cookies()).set(cookieName, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
+    ...cookieOptions,
     expires: expiresAt,
   });
 }
-export async function shopSessionState() {
+export async function shopSessionState(renewCookie = false) {
   const token = (await cookies()).get(cookieName)?.value;
   if (!token) return { shop: null, reason: "signed-out" };
   const session = await db.session.findUnique({
@@ -48,7 +53,16 @@ export async function shopSessionState() {
     await db.session.deleteMany({ where: { shopId: session.shopId } });
     return { shop: null, reason };
   }
-  if (session.expiresAt <= new Date()) return { shop: null, reason: "signed-out" };
+  // Shop access and explicit revocation govern validity, not a fixed login age.
+  // Only route handlers may renew cookies; ordinary server reads stay read-only.
+  if (renewCookie && session.expiresAt.getTime() < Date.now() + (sessionCookieDays - 1) * 86400000) {
+    const expiresAt = new Date(Date.now() + sessionCookieDays * 86400000);
+    const renewed = await db.session.updateMany({
+      where: { id: session.id }, data: { expiresAt },
+    });
+    if (!renewed.count) return { shop: null, reason: "signed-out" };
+    (await cookies()).set(cookieName, token, { ...cookieOptions, expires: expiresAt });
+  }
   return { shop: session.shop, reason: null };
 }
 export async function currentShop() {

@@ -80,6 +80,7 @@ export async function setShopAccess(_: { error: string; success?: string }, form
   if (status === "active" && (!accessUntil || accessUntil <= new Date())) return { error: "Ngày hết hạn phải từ hôm nay trở đi khi mở sử dụng." };
   await db.$transaction(async (tx) => {
     const before = await tx.shop.findUniqueOrThrow({ where: { id } });
+    if (before.accessStatus === status && (before.accessUntil?.getTime() ?? null) === (accessUntil?.getTime() ?? null)) return;
     await tx.shop.update({ where: { id }, data: { accessStatus: status, accessUntil } });
     await tx.session.deleteMany({ where: { shopId: id } });
     await tx.adminEvent.create({ data: { adminId: admin.id, shopId: id, details: JSON.stringify({ before: { status: before.accessStatus, until: before.accessUntil?.toISOString() ?? null }, after: { status, until: accessUntil?.toISOString() ?? null } }) } });
