@@ -13,7 +13,7 @@ export default function SessionGuard() {
         if (!response.ok) return;
         const state = await response.json();
         if (!alive) return;
-        if (!state.active) { window.location.replace(`/login?reason=${encodeURIComponent(state.reason ?? "signed-out")}`); return; }
+        if (!state.active) { window.location.replace(state.reason && state.reason !== "signed-out" ? `/login?reason=${encodeURIComponent(state.reason)}` : "/login"); return; }
         clearTimeout(expiry);
         if (state.accessUntil) expiry = setTimeout(check, Math.max(100, Math.min(2147483647, Date.parse(state.accessUntil) - Date.now() + 100)));
       } catch { /* Server authorization still protects every operation while offline. */ }

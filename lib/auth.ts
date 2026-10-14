@@ -70,7 +70,7 @@ export async function currentShop() {
 }
 export async function requireShop() {
   const { shop, reason } = await shopSessionState();
-  if (!shop) redirect(`/login?reason=${encodeURIComponent(reason ?? "signed-out")}`);
+  if (!shop) redirect(reason && reason !== "signed-out" ? `/login?reason=${encodeURIComponent(reason)}` : "/login");
   return shop;
 }
 export async function deleteSession() {
