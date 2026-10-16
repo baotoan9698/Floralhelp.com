@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { CheckCheck, Clock, Flower2, GripVertical, MessageSquare, Plus, Search, Truck, UserRound } from "lucide-react";
 import { updateOrderStatus } from "@/lib/update-order-status";
 import { useRouter } from "next/navigation";
-import { statuses, type OrderView } from "@/lib/validation";
+import { statuses, type OrderView, type ProductView } from "@/lib/validation";
 import OrderStatusSelect from "./order-status-select";
+import ProductImagePreview from "./product-image-preview";
 import { vietnamToday } from "@/lib/dates";
 
 type Status = keyof typeof statuses;
@@ -14,7 +15,8 @@ const icons = { pending: Clock, preparing: Flower2, delivering: Truck, done: Che
 const money = (value: number) => new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 const addDays = (day: string, amount: number) => { const date = new Date(`${day}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + amount); return date.toISOString().slice(0, 10); };
 
-export default function OrderProcessing({ orders }: { orders: OrderView[] }) {
+export default function OrderProcessing({ orders, products = [] }: { orders: OrderView[]; products?: ProductView[] }) {
+  const productImages = new Map(products.map(product => [product.id, product.images[0]?.id]));
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [preset, setPreset] = useState("today");
@@ -108,7 +110,7 @@ export default function OrderProcessing({ orders }: { orders: OrderView[] }) {
           <header><Icon size={22} /><h2>{statuses[status]}</h2><span className="processing-count">{items.length}</span></header>
           <div className="processing-cards">
             {items.map(order => <article key={order.id} data-order-id={order.id} aria-label={`Đơn ${order.code}`} className={`processing-card${drag?.active && drag.id === order.id ? " dragging" : ""}`} onPointerDown={event => {
-                  if (pending || event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("a, select, option, .order-status-control")) return;
+                  if (pending || event.button !== 0 || !event.isPrimary || (event.target as HTMLElement).closest("a, select, option, .order-status-control, .product-image-trigger")) return;
                   event.currentTarget.setPointerCapture(event.pointerId);
                   const current = { id: order.id, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, active: false };
                   dragRef.current = current; setDrag(current);
@@ -124,7 +126,10 @@ export default function OrderProcessing({ orders }: { orders: OrderView[] }) {
                 <span className="processing-delivery"><Clock size={12} />{order.time} · {order.date.slice(5).split("-").reverse().join("/")}</span>
               </div>
               <p className="processing-customer"><UserRound size={14} /><strong title={order.customer}>{order.customer}</strong><a href={`tel:${order.phone}`}>{order.phone}</a></p>
-              <ul className="processing-products">{(order.items?.length ? order.items : [{name:order.product,quantity:1}]).slice(0,1).map((item,index)=><li key={index}><Flower2 size={14}/><span title={item.name}>{item.name}</span><b>×{item.quantity}</b></li>)}{(order.items?.length ?? 0)>1 && <li className="processing-more">+{(order.items?.length ?? 0)-1} sản phẩm</li>}</ul>
+              <ul className="processing-products">{(order.items?.length ? order.items : [{name:order.product,quantity:1,productId:order.productId}]).slice(0,2).map((item,index)=>{
+                const imageId = item.productId ? productImages.get(item.productId) : undefined;
+                return <li key={index}><span className="processing-product-image">{imageId ? <ProductImagePreview id={imageId} name={item.name} /> : <Flower2 size={22}/>}</span><span title={item.name}>{item.name}</span><b>×{item.quantity}</b></li>;
+              })}{(order.items?.length ?? 0)>2 && <li className="processing-more">+{(order.items?.length ?? 0)-2} sản phẩm</li>}</ul>
               {order.note && <p className="processing-note"><MessageSquare size={15}/><span>{order.note}</span></p>}
               <div className="processing-money"><div><span>Tổng đơn</span><strong>{money(order.price)}</strong></div><div><span>Còn phải thu</span><strong>{money(order.price-order.paidAmount)}</strong></div></div>
               <OrderStatusSelect order={order} />

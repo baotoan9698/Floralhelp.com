@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { statuses, orderSources, type OrderView, type ProductView, type CustomerView } from "@/lib/validation";
 import PaymentFields from "./order-payment-fields";
 import OrderCustomerFields from "./order-customer-fields";
@@ -8,10 +8,21 @@ export default function OrderForm({ order, products, customers, defaultDate, err
   order: OrderView | "new"; products: ProductView[]; customers: CustomerView[];
   defaultDate: string; error: string; onSubmit: (form: FormData) => void;
 }) {
+  const prepareRef = useRef<((form: FormData) => Promise<void>) | null>(null);
+  const submitting = useRef(false);
+  const [savingImages, setSavingImages] = useState(false);
+  const [imageError, setImageError] = useState("");
   const [suggestedPrice, setSuggestedPrice] = useState<{ value: number } | null>(null);
   return (
           <form
-            onSubmit={(event) => { event.preventDefault(); onSubmit(new FormData(event.currentTarget)); }}
+            onSubmit={async (event) => {
+              event.preventDefault(); if (submitting.current) return;
+              const form = new FormData(event.currentTarget);
+              submitting.current = true; setSavingImages(true); setImageError("");
+              try { await prepareRef.current?.(form); onSubmit(form); }
+              catch (error) { setImageError(error instanceof Error ? error.message : "Chưa lưu được ảnh."); }
+              finally { submitting.current = false; setSavingImages(false); }
+            }}
             className="order-form"
             id="order-editor-form"
           >
@@ -20,7 +31,7 @@ export default function OrderForm({ order, products, customers, defaultDate, err
               name="id"
               value={order === "new" ? "" : order.id}
             />
-            <div className="order-layout">
+            <fieldset disabled={savingImages} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}><div className="order-layout">
               <div className="order-column order-column-details">
               <section className="order-section order-customer compact-customer form-grid">
               <OrderCustomerFields order={order} customers={customers} />
@@ -84,6 +95,7 @@ export default function OrderForm({ order, products, customers, defaultDate, err
               </div>
               <div className="order-column order-column-products">
               <OrderProductFields
+                prepareRef={prepareRef}
                 order={order}
                 products={products}
                 onPrice={(value) => setSuggestedPrice({ value })}
@@ -91,6 +103,9 @@ export default function OrderForm({ order, products, customers, defaultDate, err
               <PaymentFields order={order} suggestedPrice={suggestedPrice} />
               </div>
             </div>
+            </fieldset>
+            {savingImages && <p role="status">Đang lưu sản phẩm và ảnh…</p>}
+            {imageError && <p role="alert" className="error">{imageError}</p>}
             {error && (
               <p className="error" role="alert">
                 {error}

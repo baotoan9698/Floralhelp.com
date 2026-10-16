@@ -16,8 +16,7 @@ import type { ProductView } from "@/lib/validation";
 import MoneyInput from "./money-input";
 const money = (value: number) =>
   new Intl.NumberFormat("vi-VN").format(value) + " ₫";
-// Temporarily hide upload controls; existing product photos remain available.
-const imageUploadsVisible = false;
+const imageUploadsVisible = true;
 export default function Products({ products }: { products: ProductView[] }) {
   const [editing, setEditing] = useState<ProductView | "new" | null>(null);
   const [price, setPrice] = useState("0");
@@ -30,6 +29,7 @@ export default function Products({ products }: { products: ProductView[] }) {
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const savedId = useRef("");
+  const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const [savedImages, setSavedImages] = useState(0);
   useEffect(() => {
     const urls = files.map((file) => URL.createObjectURL(file));
@@ -43,7 +43,7 @@ export default function Products({ products }: { products: ProductView[] }) {
     else modal.current?.close();
   }, [editing]);
   function open(value: ProductView | "new") {
-    setFiles([]);
+    setFiles([]); setDeletedImages([]);
     savedId.current = value === "new" ? "" : value.id;
     setSavedImages(value === "new" ? 0 : value.images.length);
     setError("");
@@ -58,6 +58,11 @@ export default function Products({ products }: { products: ProductView[] }) {
         const result = await saveProduct(form);
         if (result.error || !result.id) { setError(result.error); return; }
         savedId.current = result.id;
+        for (const id of deletedImages) {
+          const response = await fetch(`/api/images/${id}`, { method: "DELETE" });
+          if (!response.ok && response.status !== 404) throw new Error("Chưa xóa được ảnh. Vui lòng lưu lại để thử lại.");
+          setDeletedImages((ids) => ids.filter((value) => value !== id));
+        }
         for (const file of files) {
           const body = new FormData();
           body.set("image", file);
@@ -93,41 +98,16 @@ export default function Products({ products }: { products: ProductView[] }) {
     });
   }
   async function upload(productId: string, file?: File) {
-    if (!file) return;
-    setUploading(true);
-    setError("");
-    try {
-      const form = new FormData();
-      form.set("image", file);
-      const response = await fetch(`/api/products/${productId}/images`, {
-        method: "POST",
-        body: form,
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Không tải được ảnh.");
-      setNotice("Đã lưu ảnh riêng cho shop.");
-      router.refresh();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Không tải được ảnh.");
-    } finally {
-      setUploading(false);
-    }
+    const product = products.find((product) => product.id === productId);
+    if (!file || !product) return;
+    open(product);
+    if (file.size > 3 * 1024 * 1024) { setError("Chọn ảnh tối đa 3 MB."); return; }
+    setFiles([file]);
   }
   async function removeImage(id: string) {
-    if (!window.confirm("Xóa ảnh này khỏi sản phẩm?")) return;
-    setUploading(true);
-    setError("");
-    try {
-      const response = await fetch(`/api/images/${id}`, { method: "DELETE" });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Không xóa được ảnh.");
-      router.refresh();
-      setNotice("Đã xóa ảnh.");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Không xóa được ảnh.");
-    } finally {
-      setUploading(false);
-    }
+    const product = products.find((product) => product.images.some((image) => image.id === id));
+    if (!product) return;
+    open(product); setDeletedImages([id]); setSavedImages(product.images.length - 1);
   }
   const shown = products.filter(
     (p) =>
@@ -344,8 +324,8 @@ export default function Products({ products }: { products: ProductView[] }) {
                   }} />
               </label>
               <small>Ảnh được tải lên khi lưu sản phẩm.</small>
-              {savedImages > 0 && <small>Đã lưu {savedImages} ảnh. Có thể xóa ảnh trên thẻ sản phẩm.</small>}
-              <div className="photo-previews">{files.map((file, i) => <div key={`${file.name}-${i}`}>
+              {savedImages > 0 && <small>Đã lưu {savedImages} ảnh. Ảnh thay đổi khi bấm lưu.</small>}
+              <div className="photo-previews">{editing !== "new" && editing.images.filter((image) => !deletedImages.includes(image.id)).map((image) => <div key={image.id}><img src={`/api/images/${image.id}`} alt={editing.name} /><button type="button" className="secondary" disabled={pending} onClick={() => { setDeletedImages((ids) => [...ids, image.id]); setSavedImages((count) => count - 1); }}>Bỏ ảnh</button></div>)}{files.map((file, i) => <div key={`${file.name}-${i}`}>
                 {previews[i] && <img src={previews[i]} alt={`Ảnh đã chọn ${i + 1}`} />}
                 <button type="button" className="secondary" disabled={pending} onClick={() => setFiles((current) => current.filter((_, index) => index !== i))}>Bỏ ảnh {i + 1}</button>
               </div>)}</div>

@@ -359,7 +359,7 @@ export default function Dashboard({
         </header>
         <main className="dashboard">
           {view === "processing" ? (
-            <OrderProcessing orders={orders} />
+            <OrderProcessing orders={orders} products={products} />
           ) : view === "customers" ? (
             <Customers customers={customers} />
           ) : view === "cashflow" ? (

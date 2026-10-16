@@ -43,16 +43,17 @@ export async function POST(
       (metadata.pages || 1) > 1
     )
       throw new Error("FORMAT");
-    normalized = await image
-      .rotate()
-      .resize({
-        width: 1600,
-        height: 1600,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 80 })
-      .toBuffer();
+    // Reduce resolution only as needed; never crop or distort the original.
+    let size = 1600;
+    do {
+      normalized = await sharp(input, { limitInputPixels: 40000000 })
+        .rotate()
+        .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .toBuffer();
+      size = Math.floor(size * 0.75);
+    } while (normalized.length >= 300000 && size >= 100);
+    if (normalized.length >= 300000) throw new Error("SIZE");
   } catch {
     return Response.json(
       { error: "Chọn ảnh JPG, PNG hoặc WebP, tối đa 3 MB và 40 megapixel." },
