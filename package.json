@@ -17,7 +17,8 @@
     "test:tenants": "node --test tests/tenancy.test.mjs",
     "test:cashflow": "node --test tests/cashflow.test.mjs",
     "test:customers": "node --test tests/customers.test.mjs",
-    "test:items": "node --test tests/order-items.test.mjs"
+    "test:items": "node --test tests/order-items.test.mjs",
+    "reminders:local": "node scripts/reminder-worker.mjs --local"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
@@ -29,6 +30,7 @@
     "react-dom": "^19.0.0",
     "server-only": "^0.0.1",
     "sharp": "^0.35.4",
+    "web-push": "^3.6.7",
     "zod": "^4.0.0"
   },
   "devDependencies": {
@@ -37,6 +39,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/web-push": "^3.6.4",
     "prisma": "6.19.3",
     "typescript": "^5.7.0"
   },

@@ -629,3 +629,12 @@ input.order-checkbox { appearance: auto; width: 18px; height: 18px; min-height: 
 .admin-metric-grid article { padding:18px; display:grid; gap:10px; }
 .admin-metric-grid strong { font-size:22px; overflow-wrap:anywhere; }
 .admin-storage { font-size:12px; color:var(--muted); margin:8px 0; }
+.delivery-notifications { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+.delivery-notifications input[type=checkbox] { width:auto; }
+.notification-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.notification-actions button { font-size:12px; padding:8px; }
+.reminder-bell { position:fixed; right:18px; bottom:80px; z-index:40; }
+.reminder-list { width:min(340px,calc(100vw - 36px)); max-height:60vh; overflow:auto; padding:16px; position:absolute; right:0; bottom:50px; background:#fffaf7; }
+.reminder-list p { font-size:12px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+
+.reminders-page { padding:24px; max-width:900px; margin:0 auto; } .reminders-page .delivery-notifications { border-top:0; margin-top:0; }

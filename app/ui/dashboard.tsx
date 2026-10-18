@@ -1,7 +1,10 @@
 "use client";
+import ReminderBell from "./reminder-bell";
+import DeliveryNotifications from "./delivery-notifications";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import {
+  Bell,
   Flower2,
   Flower,
   Menu,
@@ -111,7 +114,7 @@ export default function Dashboard({
   products: ProductView[];
   cashEntries: CashView[];
   customers: CustomerView[];
-  initialView?: "calendar" | "reports" | "orders" | "processing" | "products" | "cashflow" | "customers";
+  initialView?: "calendar" | "reports" | "orders" | "processing" | "reminders" | "products" | "cashflow" | "customers";
 }) {
   const [month, setMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -272,6 +275,7 @@ export default function Dashboard({
             { label: "Tổng quan", path: "/", view: "calendar", icon: House },
             { label: "Danh sách đơn", path: "/orders", view: "orders", icon: ClipboardList },
             { label: "Xử Lí đơn", path: "/processing", view: "processing", icon: Columns3 },
+            { label: "Nhắc giao hoa", path: "/reminders", view: "reminders", icon: Bell },
             { label: "Sản phẩm", path: "/products", view: "products", icon: Flower2 },
             { label: "Báo cáo", path: "/reports", view: "reports", icon: ChartNoAxesCombined },
             { label: "Khách hàng", path: "/customers", view: "customers", icon: Users },
@@ -310,6 +314,7 @@ export default function Dashboard({
           >
             <ClipboardList size={20} /> Danh sách đơn
           </button>
+          <button className={view === "reminders" ? "active" : ""} onClick={() => { closeMenu(); router.push("/reminders"); }}><Bell size={20} /> Nhắc giao hoa</button>
           <button className={view === "processing" ? "active" : ""} onClick={() => router.push("/processing")}>
             <Columns3 size={20} /> Xử Lí đơn
           </button>
@@ -358,7 +363,9 @@ export default function Dashboard({
           <button ref={menuToggle} className="icon-button menu-toggle" aria-label="Mở menu" aria-expanded={menuOpen} aria-controls="shop-menu" onClick={() => { menuDialog.current?.showModal(); setMenuOpen(true); }}><Menu size={24} /></button>
         </header>
         <main className="dashboard">
-          {view === "processing" ? (
+          {view === "reminders" ? (
+            <section className="card reminders-page"><h1>Nhắc giao hoa</h1><DeliveryNotifications /></section>
+          ) : view === "processing" ? (
             <OrderProcessing orders={orders} products={products} />
           ) : view === "customers" ? (
             <Customers customers={customers} />
@@ -796,6 +803,7 @@ export default function Dashboard({
           </div>
         </Modal>
       )}
+      <ReminderBell />
       {settings && (
         <Modal
           title="Cài đặt shop"

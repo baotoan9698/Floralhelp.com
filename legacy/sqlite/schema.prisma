@@ -8,6 +8,10 @@ datasource db {
 }
 
 model Shop {
+  reminderEnabled Boolean @default(false)
+  reminderMinutes Int @default(120)
+  pushDevices PushDevice[]
+  reminders DeliveryReminder[]
   plan String @default("trial")
   accessStatus String @default("pending")
   accessUntil DateTime?
@@ -207,4 +211,26 @@ model AdminEvent {
   details String
   createdAt DateTime @default(now())
   @@index([shopId, createdAt])
+}
+
+model PushDevice {
+ id String @id @default(cuid())
+ shopId String
+ shop Shop @relation(fields:[shopId],references:[id],onDelete:Cascade)
+ endpoint String @unique
+ p256dh String
+ auth String
+ createdAt DateTime @default(now())
+}
+model DeliveryReminder {
+ id String @id @default(cuid())
+ shopId String
+ shop Shop @relation(fields:[shopId],references:[id],onDelete:Cascade)
+ orderId String
+ scheduleKey String @unique
+ title String
+ body String
+ createdAt DateTime @default(now())
+ readAt DateTime?
+ @@index([shopId,createdAt])
 }
