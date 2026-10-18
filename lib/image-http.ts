@@ -5,13 +5,15 @@ export const imageHeaders = {
   "X-Content-Type-Options": "nosniff",
 };
 export function sameOrigin(request: Request) {
-  const target = new URL(request.url);
-  // Next's local server may normalize request.url to localhost even when the
-  // browser uses 127.0.0.1. Host is the actual HTTP authority of this request.
-  target.host = request.headers.get("host") || target.host;
-  if (request.headers.get("x-forwarded-proto") === "https")
-    target.protocol = "https:";
-  return request.headers.get("origin") === target.origin;
+  const internal = new URL(request.url);
+  const host = request.headers.get("host") || internal.host;
+  const protocol = request.headers.get("x-forwarded-proto") === "https" ? "https:" : internal.protocol;
+  // Build a new origin: assigning URL.host without a port retains an existing
+  // internal :3000 port, incorrectly rejecting HTTPS requests through nginx.
+  try {
+    const target = new URL(`${protocol}//${host}`);
+    return request.headers.get("origin") === target.origin;
+  } catch { return false; }
 }
 export async function boundedForm(request: Request) {
   const max = 3 * 1024 * 1024 + 64 * 1024;
