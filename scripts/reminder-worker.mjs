@@ -16,7 +16,7 @@ async function tick(){if(running)return;running=true;try{
  const due=new Date(`${order.date}T${order.time}:00+07:00`);
  if(!Number.isFinite(due.getTime())||due<=now||due>until)continue;
  const scheduleKey=`${order.id}:${order.date}:${order.time}`;
- const title=`Đơn ${order.code} cần chuẩn bị`,body=`Giao ${order.time} · ${order.date.split('-').reverse().join('/')} · ${order.customer}`;
+ const title=`Đơn hàng ${order.code} cần được chuẩn bị trước giờ giao cho khách !`,body=`Giao lúc : ${order.time} - ${order.date.split('-').reverse().join('/')} - ${order.customer}`;
  try{await db.deliveryReminder.create({data:{shopId:shop.id,orderId:order.id,scheduleKey,title,body}});}catch(e){if(e.code==='P2002')continue;throw e;}
  for(const device of shop.pushDevices){try{
  await webpush.sendNotification({endpoint:device.endpoint,keys:{p256dh:device.p256dh,auth:device.auth}},JSON.stringify({title,body,url:`/orders/${order.id}`,tag:scheduleKey}),{TTL:Math.min(3600,Math.max(1,Math.floor((due-now)/1000))),timeout:10000});
