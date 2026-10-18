@@ -9,6 +9,7 @@ datasource db {
 }
 
 model Shop {
+  plan String @default("trial")
   accessStatus String @default("pending")
   accessUntil DateTime?
   adminEvents AdminEvent[]

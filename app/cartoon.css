@@ -622,3 +622,10 @@ input.order-checkbox { appearance: auto; width: 18px; height: 18px; min-height: 
 .order-item-photo .quick-image-remove { position:absolute; z-index:1; right:2px; top:2px; width:22px; height:22px; min-height:0; display:grid; place-items:center; padding:0; border:1px solid var(--line); border-radius:6px; background:white; color:#b62955; box-shadow:none; opacity:0; pointer-events:none; transition:opacity .15s; }
 .order-item-photo:hover .quick-image-remove, .order-item-photo:focus-within .quick-image-remove { opacity:1; pointer-events:auto; }
 @media (hover:none) { .order-item-photo .quick-image-remove { opacity:1; pointer-events:auto; } }
+.admin-tabs { display:flex; gap:12px; margin:18px 0; flex-wrap:wrap; }
+.admin-tabs a { padding:10px 16px; border-radius:10px; border:1px solid var(--line); text-decoration:none; color:var(--ink); }
+.admin-tabs a[aria-current] { background:#fce6ef; font-weight:bold; }
+.admin-metric-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin:16px 0; }
+.admin-metric-grid article { padding:18px; display:grid; gap:10px; }
+.admin-metric-grid strong { font-size:22px; overflow-wrap:anywhere; }
+.admin-storage { font-size:12px; color:var(--muted); margin:8px 0; }

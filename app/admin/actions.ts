@@ -73,17 +73,17 @@ export async function deleteShopAccount(form: FormData) {
 }
 export async function setShopAccess(_: { error: string; success?: string }, form: FormData) {
   const admin = await requireAdmin();
-  const parsed = z.object({ id: z.string().min(1), status: z.enum(["active", "pending", "suspended", "rejected"]), until: z.union([z.literal(""), z.iso.date()]) }).safeParse(Object.fromEntries(form));
+  const parsed = z.object({ id: z.string().min(1), status: z.enum(["active", "pending", "suspended", "rejected"]), plan: z.enum(["trial", "paid", "legacy"]), until: z.union([z.literal(""), z.iso.date()]) }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: "Chọn trạng thái và ngày hết hạn hợp lệ." };
-  const { id, status, until } = parsed.data;
+  const { id, status, until, plan } = parsed.data;
   const accessUntil = until ? new Date(`${until}T23:59:59.999+07:00`) : null;
   if (status === "active" && (!accessUntil || accessUntil <= new Date())) return { error: "Ngày hết hạn phải từ hôm nay trở đi khi mở sử dụng." };
   await db.$transaction(async (tx) => {
     const before = await tx.shop.findUniqueOrThrow({ where: { id } });
-    if (before.accessStatus === status && (before.accessUntil?.getTime() ?? null) === (accessUntil?.getTime() ?? null)) return;
-    await tx.shop.update({ where: { id }, data: { accessStatus: status, accessUntil } });
-    await tx.session.deleteMany({ where: { shopId: id } });
-    await tx.adminEvent.create({ data: { adminId: admin.id, shopId: id, details: JSON.stringify({ before: { status: before.accessStatus, until: before.accessUntil?.toISOString() ?? null }, after: { status, until: accessUntil?.toISOString() ?? null } }) } });
+    if (before.plan === plan && before.accessStatus === status && (before.accessUntil?.getTime() ?? null) === (accessUntil?.getTime() ?? null)) return;
+    await tx.shop.update({ where: { id }, data: { accessStatus: status, accessUntil, plan } });
+    if (before.accessStatus !== status || (before.accessUntil?.getTime() ?? null) !== (accessUntil?.getTime() ?? null)) await tx.session.deleteMany({ where: { shopId: id } });
+    await tx.adminEvent.create({ data: { adminId: admin.id, shopId: id, details: JSON.stringify({ before: { plan: before.plan, status: before.accessStatus, until: before.accessUntil?.toISOString() ?? null }, after: { plan, status, until: accessUntil?.toISOString() ?? null } }) } });
   });
   revalidatePath("/admin");
   return { error: "", success: "Đã cập nhật quyền sử dụng." };
