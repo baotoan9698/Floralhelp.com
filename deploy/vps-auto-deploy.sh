@@ -16,13 +16,15 @@ release="/srv/floralhelp/releases/$revision"
 install -d -o floralhelp -g floralhelp "$release"
 git --git-dir="$repo" archive "$revision" | tar -x -C "$release"
 chown -R floralhelp:floralhelp "$release"
-ln -sfn /srv/floralhelp/shared/private-storage "$release/.private-storage"
+# A retried release may already have a storage symlink. Do not trace runtime images during build.
+if [[ -L "$release/.private-storage" ]]; then unlink "$release/.private-storage"; fi
 set -a
 source /etc/floralhelp/app.env
 set +a
 cd "$release"
 runuser -u floralhelp -- npm ci --include=dev --no-audit --no-fund
 runuser -u floralhelp -- env NODE_OPTIONS=--max-old-space-size=1536 npm run build
+ln -sfn /srv/floralhelp/shared/private-storage "$release/.private-storage"
 # Back up before applying database changes; never reset the database.
 /usr/local/sbin/floralhelp-backup
 runuser -u floralhelp -- npm run db:migrate
