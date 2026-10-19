@@ -30,7 +30,7 @@ export async function POST(
       { error: "Mỗi sản phẩm tối đa 3 ảnh." },
       { status: 409 },
     );
-  const release = acquireImageSlot();
+  const release = await acquireImageSlot(request.signal);
   if (!release) return Response.json({ error: "Máy chủ đang xử lý ảnh khác. Vui lòng thử lưu lại sau vài giây." }, { status: 429, headers: { "Retry-After": "2" } });
   let normalized: Buffer;
   try {
@@ -46,6 +46,15 @@ export async function POST(
       (metadata.pages || 1) > 1
     )
       throw new Error("FORMAT");
+    // Browser-compressed WebP: fully decode to verify integrity, but avoid a
+    // second lossy encode when dimensions, size and metadata already comply.
+    if (metadata.format === "webp" && input.length < 300000 &&
+        (metadata.width || 0) <= 1600 && (metadata.height || 0) <= 1600 &&
+        !metadata.exif && !metadata.icc && !metadata.xmp && !metadata.iptc &&
+        (!metadata.orientation || metadata.orientation === 1)) {
+      await sharp(input, { limitInputPixels: 40000000, failOn: "warning" }).raw().toBuffer();
+      normalized = input;
+    } else {
     // Reduce resolution only as needed; never crop or distort the original.
     let size = 1600;
     do {
@@ -57,6 +66,7 @@ export async function POST(
       size = Math.floor(size * 0.75);
     } while (normalized.length >= 300000 && size >= 100);
     if (normalized.length >= 300000) throw new Error("SIZE");
+    }
   } catch {
     return Response.json(
       { error: "Chọn ảnh JPG, PNG hoặc WebP, tối đa 3 MB và 40 megapixel." },
