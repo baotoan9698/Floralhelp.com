@@ -63,7 +63,8 @@ test('Product images: limits, tenant isolation, square catalog and processing th
   await page.goto(base+'/products');
   const quickCard=page.locator('.product-card').filter({has:page.getByRole('heading',{name:'Quick flower photo',exact:true})});
   const beforeUploads=uploads;
-  await quickCard.locator('input[type=file]').setInputFiles({name:'flower.jpg',mimeType:'image/jpeg',buffer});
+  await quickCard.getByRole('button',{name:'Quick flower photo',exact:true}).click();
+  await page.locator('dialog .product-photo-add input').setInputFiles({name:'flower.jpg',mimeType:'image/jpeg',buffer});
   await expect(page.locator('dialog[open]')).toBeVisible();assert.equal(uploads,beforeUploads);
   await page.getByRole('button',{name:'Lưu sản phẩm',exact:true}).click();
   await expect(page.locator('dialog[open]')).toHaveCount(0);assert.equal(uploads,beforeUploads+1);

@@ -4,17 +4,15 @@ import { useRouter } from "next/navigation";
 import {
   Plus,
   Flower2,
-  Pencil,
   Archive,
   RotateCcw,
   X,
-  Trash2,
-  ImagePlus,
 } from "lucide-react";
 import { saveProduct, archiveProduct } from "../actions";
 import type { ProductView } from "@/lib/validation";
 import MoneyInput from "./money-input";
 import { uploadProductImage } from "@/lib/client-image-upload";
+import ProductGallery from "./product-gallery";
 const money = (value: number) =>
   new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 const imageUploadsVisible = true;
@@ -27,7 +25,6 @@ export default function Products({ products }: { products: ProductView[] }) {
   const [notice, setNotice] = useState("");
   const [pending, start] = useTransition();
   const [uploadProgress, setUploadProgress] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const savedId = useRef("");
@@ -95,18 +92,6 @@ export default function Products({ products }: { products: ProductView[] }) {
       }
     });
   }
-  async function upload(productId: string, file?: File) {
-    const product = products.find((product) => product.id === productId);
-    if (!file || !product) return;
-    open(product);
-    if (file.size > 3 * 1024 * 1024) { setError("Chọn ảnh tối đa 3 MB."); return; }
-    setFiles([file]);
-  }
-  async function removeImage(id: string) {
-    const product = products.find((product) => product.images.some((image) => image.id === id));
-    if (!product) return;
-    open(product); setDeletedImages([id]); setSavedImages(product.images.length - 1);
-  }
   const shown = products.filter(
     (p) =>
       p.archived === archived &&
@@ -168,83 +153,14 @@ export default function Products({ products }: { products: ProductView[] }) {
       ) : (
         <div className="product-grid">
           {shown.map((product) => (
-            <article className="card product-card" key={product.id}>
-              <div className="product-images">
-                {product.images.length ? (
-                  product.images.map((image, i) => (
-                    <div key={image.id}>
-                      <img
-                        src={`/api/images/${image.id}`}
-                        alt={`${product.name} — ảnh ${i + 1}`}
-                        loading="lazy"
-                      />
-                      <button
-                        className="icon-button"
-                        aria-label={`Xóa ảnh ${i + 1} của ${product.name}`}
-                        disabled={uploading}
-                        onClick={() => removeImage(image.id)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="product-placeholder">
-                    <Flower2 size={40} strokeWidth={1} />
-                  </div>
-                )}
-              </div>
+            <article className="card product-card" key={product.id} onClick={(event) => {
+              if ((event.target as HTMLElement).closest("button, input, a, label")) return;
+              open(product);
+            }}>
+              <ProductGallery key={product.images.map((image) => image.id).join(",")} product={product} />
               <div className="product-info">
-                <h2>{product.name}</h2>
+                <h2 title={product.name}><button type="button" className="product-name-link" onClick={() => open(product)}>{product.name}</button></h2>
                 <strong>{money(product.price)}</strong>
-                {product.description && <p>{product.description}</p>}
-                <div className="product-buttons">
-                  <button className="secondary" onClick={() => open(product)}>
-                    <Pencil size={15} />
-                    Sửa
-                  </button>
-                  <button
-                    className="icon-button"
-                    disabled={pending}
-                    aria-label={`${product.archived ? "Hiện" : "Ẩn"} sản phẩm ${product.name}`}
-                    onClick={() =>
-                      run(
-                        () => archiveProduct(product.id, !product.archived),
-                        () =>
-                          setNotice(
-                            product.archived
-                              ? "Đã mở bán lại sản phẩm."
-                              : "Đã ẩn sản phẩm; các đơn cũ vẫn được giữ.",
-                          ),
-                      )
-                    }
-                  >
-                    {product.archived ? (
-                      <RotateCcw size={17} />
-                    ) : (
-                      <Archive size={17} />
-                    )}
-                  </button>
-                </div>
-                {imageUploadsVisible && !product.archived && product.images.length < 3 && (
-                  <label className="upload-label">
-                    <span className="upload-icon"><ImagePlus size={21} /></span>
-                    <span className="upload-copy"><strong>{uploading
-                      ? "Đang xử lý ảnh…"
-                      : "Thêm ảnh sản phẩm"}</strong><small>JPG, PNG, WebP · Tối đa 3 MB/ảnh</small></span>
-                    <span className="upload-count">{product.images.length}/3</span>
-                    <input
-                      aria-label={`Thêm ảnh cho ${product.name}`}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      disabled={uploading}
-                      onChange={(e) => {
-                        void upload(product.id, e.target.files?.[0]);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                )}
               </div>
             </article>
           ))}
@@ -260,7 +176,7 @@ export default function Products({ products }: { products: ProductView[] }) {
       >
         <div className="modal-head">
           <h2 id="product-modal-title">
-            {editing === "new" ? "Thêm sản phẩm" : "Sửa sản phẩm"}
+            {editing === "new" ? "Thêm sản phẩm" : "Chi tiết sản phẩm"}
           </h2>
           <button
             className="icon-button"
@@ -308,25 +224,28 @@ export default function Products({ products }: { products: ProductView[] }) {
               />
             </label>
             {imageUploadsVisible && <div className="product-photo-picker">
-              <label className="upload-label">
-                <span className="upload-icon"><ImagePlus size={21} /></span>
-                <span className="upload-copy"><strong>Chọn ảnh sản phẩm</strong><small>JPG, PNG, WebP · Tối đa 3 MB/ảnh</small></span>
-                <span className="upload-count">{savedImages + files.length}/3</span>
-                <input type="file" aria-label="Chọn ảnh sản phẩm" multiple accept="image/jpeg,image/png,image/webp" disabled={pending || savedImages + files.length >= 3}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.files ?? []);
-                    e.target.value = "";
-                    if (selected.length + files.length + savedImages > 3) { setError("Mỗi sản phẩm tối đa 3 ảnh."); return; }
-                    if (selected.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024)) { setError("Chọn JPG, PNG hoặc WebP, tối đa 3 MB mỗi ảnh."); return; }
-                    setError(""); setFiles((current) => [...current, ...selected]);
-                  }} />
-              </label>
-              <small>Ảnh được tải lên khi lưu sản phẩm.</small>
-              {savedImages > 0 && <small>Đã lưu {savedImages} ảnh. Ảnh thay đổi khi bấm lưu.</small>}
-              <div className="photo-previews">{editing !== "new" && editing.images.filter((image) => !deletedImages.includes(image.id)).map((image) => <div key={image.id}><img src={`/api/images/${image.id}`} alt={editing.name} /><button type="button" className="secondary" disabled={pending} onClick={() => { setDeletedImages((ids) => [...ids, image.id]); setSavedImages((count) => count - 1); }}>Bỏ ảnh</button></div>)}{files.map((file, i) => <div key={`${file.name}-${i}`}>
-                {previews[i] && <img src={previews[i]} alt={`Ảnh đã chọn ${i + 1}`} />}
-                <button type="button" className="secondary" disabled={pending} onClick={() => setFiles((current) => current.filter((_, index) => index !== i))}>Bỏ ảnh {i + 1}</button>
-              </div>)}</div>
+              <div className="product-detail-photos">
+                {savedImages + files.length === 0 && <div className="product-detail-photo product-detail-placeholder" aria-label="Chưa có ảnh sản phẩm"><Flower2 size={32} strokeWidth={1.5} /></div>}
+                {editing !== "new" && editing.images.filter((image) => !deletedImages.includes(image.id)).map((image, i) => <div className="product-detail-photo" key={image.id}>
+                  <img src={`/api/images/${image.id}`} alt={`${editing.name} — ảnh ${i + 1}`} />
+                  <button type="button" className="icon-button" aria-label={`Bỏ ảnh ${i + 1}`} disabled={pending} onClick={() => { setDeletedImages((ids) => [...ids, image.id]); setSavedImages((count) => count - 1); }}><X size={14} /></button>
+                </div>)}
+                {files.map((file, i) => <div className="product-detail-photo" key={`${file.name}-${i}`}>
+                  {previews[i] && <img src={previews[i]} alt={`Ảnh mới ${i + 1}`} />}
+                  <button type="button" className="icon-button" aria-label={`Bỏ ảnh mới ${i + 1}`} disabled={pending} onClick={() => setFiles((current) => current.filter((_, index) => index !== i))}><X size={14} /></button>
+                </div>)}
+                {savedImages + files.length < 3 && <label className="product-photo-add" title="Thêm ảnh sản phẩm">
+                  <Plus size={26} aria-hidden="true" />
+                  <input type="file" aria-label="Thêm ảnh sản phẩm" multiple accept="image/jpeg,image/png,image/webp" disabled={pending}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.files ?? []); e.target.value = "";
+                      if (selected.length + files.length + savedImages > 3) { setError("Mỗi sản phẩm tối đa 3 ảnh."); return; }
+                      if (selected.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024)) { setError("Chọn JPG, PNG hoặc WebP, tối đa 3 MB mỗi ảnh."); return; }
+                      setError(""); setFiles((current) => [...current, ...selected]);
+                    }} />
+                </label>}
+              </div>
+              <small>Tối đa 3 ảnh · 3 MB/ảnh · Ảnh được cập nhật khi lưu.</small>
             </div>}
             {error && (
               <p className="error" role="alert">
@@ -334,6 +253,9 @@ export default function Products({ products }: { products: ProductView[] }) {
               </p>
             )}
             <div className="modal-actions">
+              {editing !== "new" && <button type="button" className="secondary" disabled={pending} onClick={() => run(() => archiveProduct(editing.id, !editing.archived), () => { setNotice(editing.archived ? "Đã mở bán lại sản phẩm." : "Đã ẩn sản phẩm; các đơn cũ vẫn được giữ."); setEditing(null); })}>
+                {editing.archived ? <RotateCcw size={15} /> : <Archive size={15} />}{editing.archived ? "Mở bán lại" : "Ẩn sản phẩm"}
+              </button>}
               <button
                 type="button"
                 className="secondary"
