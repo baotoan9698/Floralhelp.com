@@ -14,6 +14,7 @@ import {
 import { saveProduct, archiveProduct } from "../actions";
 import type { ProductView } from "@/lib/validation";
 import MoneyInput from "./money-input";
+import { uploadProductImage } from "@/lib/client-image-upload";
 const money = (value: number) =>
   new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 const imageUploadsVisible = true;
@@ -25,6 +26,7 @@ export default function Products({ products }: { products: ProductView[] }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [pending, start] = useTransition();
+  const [uploadProgress, setUploadProgress] = useState("");
   const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -64,11 +66,7 @@ export default function Products({ products }: { products: ProductView[] }) {
           setDeletedImages((ids) => ids.filter((value) => value !== id));
         }
         for (const file of files) {
-          const body = new FormData();
-          body.set("image", file);
-          const response = await fetch(`/api/products/${result.id}/images`, { method: "POST", body });
-          const uploaded = await response.json();
-          if (!response.ok) throw new Error(uploaded.error || "Không tải được ảnh.");
+          await uploadProductImage(result.id, file, setUploadProgress);
           setFiles((current) => current.filter((item) => item !== file));
           setSavedImages((count) => count + 1);
         }
@@ -345,7 +343,7 @@ export default function Products({ products }: { products: ProductView[] }) {
                 Hủy
               </button>
               <button className="primary" disabled={pending}>
-                {pending ? "Đang lưu…" : "Lưu sản phẩm"}
+                {pending ? (uploadProgress || "Đang lưu…") : "Lưu sản phẩm"}
               </button>
             </div>
           </form>

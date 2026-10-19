@@ -6,6 +6,7 @@ import MoneyInput from "./money-input";
 import { saveProduct } from "@/app/actions";
 import ProductSuggestionsPopup from "./product-suggestions-popup";
 import ProductImagePreview from "./product-image-preview";
+import { uploadProductImage } from "@/lib/client-image-upload";
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase().trim();
 const money = (value: number) => new Intl.NumberFormat("vi-VN").format(value) + " ₫";
 type Row = OrderItemInput & { key: number; priceText: string };
@@ -21,6 +22,7 @@ export default function OrderProductFields({ order, products, onPrice, prepareRe
   const [active, setActive] = useState(-1);
   const [addedProducts, setAddedProducts] = useState<ProductView[]>([]);
   const savingKey: number | null = null;
+  const [uploadProgress, setUploadProgress] = useState("");
   const [quickError, setQuickError] = useState("");
   const catalog = [...products.filter((product) => !addedProducts.some((item) => item.id === product.id)), ...addedProducts];
   const draftFiles = useRef(new Map<string, { file: File; url: string }>());
@@ -54,10 +56,7 @@ export default function OrderProductFields({ order, products, onPrice, prepareRe
       }
       const photo = draftFiles.current.get(draftId);
       if (photo) {
-        const body = new FormData(); body.set("image", photo.file);
-        const response = await fetch(`/api/products/${id}/images`, { method: "POST", body });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || "Chưa tải được ảnh. Bấm lưu để thử lại.");
+        const result = await uploadProductImage(id, photo.file, setUploadProgress);
         draftFiles.current.delete(draftId); URL.revokeObjectURL(photo.url);
         setAddedProducts((products) => products.map((product) => product.id === draftId ? { ...product, images: [{ id: result.id, slot: 1 }] } : product));
       }
@@ -144,6 +143,7 @@ export default function OrderProductFields({ order, products, onPrice, prepareRe
       </div>;
     })}
     </div>
+    {uploadProgress && <p role="status">{uploadProgress}</p>}
     {quickError && <p role="alert">{quickError}</p>}
     <button type="button" className="secondary add-order-product" disabled={rows.length >= 100} onClick={() => {
       commit([...rows, { key: nextKey, name: "", productId: null, quantity: 1, unitPrice: 0, priceText: "" }]); setNextKey(nextKey + 1);

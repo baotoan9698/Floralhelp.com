@@ -13,6 +13,8 @@ export async function GET(
   const data = await shopData();
   const image = await data.findImage((await params).id);
   if (!image) return new Response(null, { status: 404, headers: imageHeaders });
+  const headers = { ...imageHeaders, "Cache-Control": "private, no-cache", ETag: `"${image.id}"` };
+  if (_request.headers.get("if-none-match") === headers.ETag) return new Response(null, { status: 304, headers });
   try {
     const bytes = await readImage(
       data.shop.id,
@@ -20,7 +22,7 @@ export async function GET(
       image.storageDriver,
     );
     return new Response(new Uint8Array(bytes), {
-      headers: { ...imageHeaders, "Content-Type": "image/webp" },
+      headers: { ...headers, "Content-Type": "image/webp" },
     });
   } catch {
     return new Response(null, { status: 503, headers: imageHeaders });

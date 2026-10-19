@@ -29,6 +29,8 @@ test('Product images: limits, tenant isolation, square catalog and processing th
   assert.equal((await other.request.get(`${base}/api/images/${images[0]}`)).status(),404);
   assert.equal((await other.request.delete(`${base}/api/images/${images[0]}`,{headers:{Origin:base}})).status(),404);
   const res=await owner.request.get(`${base}/api/images/${images[0]}`);assert.equal(res.status(),200);assert.match(res.headers()['content-type'],/image\/webp/);
+  assert.equal((await owner.request.get(`${base}/api/images/${images[0]}`,{headers:{"If-None-Match":res.headers().etag}})).status(),304);
+  assert.equal((await other.request.get(`${base}/api/images/${images[0]}`,{headers:{"If-None-Match":res.headers().etag}})).status(),404);
   const stored=await res.body();assert.ok(stored.length<300000);const metadata=await sharp(stored).metadata();assert.ok(Math.abs(metadata.width/metadata.height-1.5)<0.01);
   const customer=await db.customer.create({data:{shopId:shops[0].id,code:'KH1',name:'Test',phone:'0000000000',address:'',identityKey:'test'}});
   const testOrder=await db.order.create({data:{customerId:customer.id,shopId:shops[0].id,code:'DH-IMG',productId:product.id,product:product.name,customer:'Khách mẫu',phone:'0000000000',address:'',date:'2026-10-16',time:'09:00',orderDate:'2026-10-16',orderTime:'08:00',price:250000,status:'pending'}});
@@ -49,14 +51,14 @@ test('Product images: limits, tenant isolation, square catalog and processing th
   assert.equal(await db.productImage.count({where:{shopId:shops[0].id}}),3);
   await page.locator('.order-photo-upload input').setInputFiles({name:'flower.jpg',mimeType:'image/jpeg',buffer});
   await expect(page.locator('.order-item-photo img')).toBeVisible();
-  let uploads=0;page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/images'))uploads++;});
+  let uploads=0, uploadedBytes=0;page.on('request',request=>{if(request.method()==='POST'&&request.url().includes('/images')){uploads++;uploadedBytes=request.postDataBuffer()?.length || 0;}});
   await page.getByRole('button',{name:'Lưu đơn hàng',exact:true}).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu thay đổi');
-  assert.equal(uploads,1);
+  await expect(page.getByRole('status').filter({hasText:'Đã lưu thay đổi'})).toContainText('Đã lưu thay đổi');
+  assert.equal(uploads,1); 
   const quickProduct=await db.product.findFirstOrThrow({where:{shopId:shops[0].id,name:'Quick flower photo'},include:{images:true}});
   assert.equal(quickProduct.images.length,1);images.push(quickProduct.images[0].id);
   await page.getByRole('button',{name:'Lưu đơn hàng',exact:true}).click();
-  await expect(page.getByRole('status')).toContainText('Đã lưu thay đổi');assert.equal(uploads,1);
+  await expect(page.getByRole('status').filter({hasText:'Đã lưu thay đổi'})).toContainText('Đã lưu thay đổi');assert.equal(uploads,1);
 
   await page.goto(base+'/products');
   const quickCard=page.locator('.product-card').filter({has:page.getByRole('heading',{name:'Quick flower photo',exact:true})});

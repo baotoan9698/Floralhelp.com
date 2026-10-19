@@ -1,3 +1,4 @@
+import { acquireImageSlot } from "@/lib/image-capacity";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { Prisma } from "@prisma/client";
@@ -29,6 +30,8 @@ export async function POST(
       { error: "Mỗi sản phẩm tối đa 3 ảnh." },
       { status: 409 },
     );
+  const release = acquireImageSlot();
+  if (!release) return Response.json({ error: "Máy chủ đang xử lý ảnh khác. Vui lòng thử lưu lại sau vài giây." }, { status: 429, headers: { "Retry-After": "2" } });
   let normalized: Buffer;
   try {
     const form = await boundedForm(request);
@@ -49,7 +52,7 @@ export async function POST(
       normalized = await sharp(input, { limitInputPixels: 40000000 })
         .rotate()
         .resize({ width: size, height: size, fit: "inside", withoutEnlargement: true })
-        .webp({ quality: 80 })
+        .webp({ quality: 80, effort: 1 })
         .toBuffer();
       size = Math.floor(size * 0.75);
     } while (normalized.length >= 300000 && size >= 100);
@@ -60,6 +63,7 @@ export async function POST(
       { status: 400 },
     );
   }
+  finally { release(); }
   const key = `shops/${data.shop.id}/products/${id}/${randomUUID()}.webp`;
   let driver: string | undefined;
   try {
