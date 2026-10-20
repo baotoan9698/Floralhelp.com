@@ -75,6 +75,7 @@ test('Product images: limits, tenant isolation, square catalog and processing th
    await expect(page.locator('.product-images img')).toHaveCount(5);
    await page.goto(base+'/processing');await page.getByRole('button',{name:'Tất cả',exact:true}).click();
    await expect(page.locator('.processing-product-image img')).toBeVisible();
+   await page.locator('.processing-product-image img').click();await expect(page.locator('.product-image-dialog')).toBeVisible();await page.getByRole('button',{name:'Đóng ảnh',exact:true}).click();await expect(page.locator('.product-image-dialog')).toHaveCount(0);
    await page.locator('.processing-product-image img').click();await expect(page.locator('.product-image-dialog')).toBeVisible();await page.keyboard.press('Escape');await expect(page.locator('.product-image-dialog')).toHaveCount(0);
    for(const route of ['products','processing']){
     if(route==='products') await page.goto(base+'/products');
