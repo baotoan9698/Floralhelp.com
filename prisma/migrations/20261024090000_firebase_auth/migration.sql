@@ -1,0 +1,6 @@
+ALTER TABLE "Shop" ADD COLUMN "firebaseUid" TEXT;
+ALTER TABLE "Shop" ADD COLUMN "emailVerificationRequired" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Shop" ADD COLUMN "emailVerifiedAt" TIMESTAMP(3);
+ALTER TABLE "Shop" ADD COLUMN "trialStartedAt" TIMESTAMP(3);
+CREATE UNIQUE INDEX "Shop_firebaseUid_key" ON "Shop"("firebaseUid");
+ALTER TABLE "Session" ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

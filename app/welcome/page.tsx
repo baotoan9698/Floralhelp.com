@@ -12,7 +12,7 @@ export default async function WelcomePage() {
     <h1>Đăng ký sử dụng thành công</h1>
     <p>Chào mừng {shop.name} đến với Floralhelp!</p>
     <dl><div><dt>Gói</dt><dd>Dùng Thử</dd></div><div><dt>Hạn sử dụng</dt><dd>{until}</dd></div></dl>
-    <p>Bạn có 15 ngày dùng thử kể từ khi đăng ký. Thời gian hiển thị theo giờ Việt Nam.</p>
+    <p>Bạn có 15 ngày dùng thử kể từ khi {shop.emailVerificationRequired ? "xác minh email và đăng nhập lần đầu" : "đăng ký"}. Thời gian hiển thị theo giờ Việt Nam.</p>
     <Link href="/" className="primary">Bắt đầu sử dụng</Link>
   </main>;
 }

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { deleteStoredImage } from "@/lib/image-storage";
 import { verifyPassword, hashPassword } from "@/lib/auth";
 import { randomBytes } from "node:crypto";
+import { setFirebasePassword, deleteFirebaseUser } from "@/lib/firebase-auth";
 import { adminHostAllowed, createAdminSession, deleteAdminSession, requireAdmin } from "@/lib/admin-auth";
 export async function adminLogin(_: { error: string }, form: FormData) {
   if (!(await adminHostAllowed())) return { error: "Vui lòng sử dụng địa chỉ quản trị." };
@@ -27,6 +28,12 @@ export async function resetShopPassword(id: string) {
   const admin = await requireAdmin();
   if (typeof id !== "string" || !id || id.length > 128) return { error: "Shop không hợp lệ." };
   const password = `Fh!9${randomBytes(24).toString("base64url")}`;
+  const target = await db.shop.findUnique({ where: { id } });
+  if (!target) return { error: "Không tìm thấy shop." };
+  if (target.firebaseUid) {
+    try { await setFirebasePassword(target.firebaseUid, password); }
+    catch { return { error: "Chưa reset được mật khẩu trên Firebase. Vui lòng thử lại." }; }
+  }
   const changed = await db.$transaction(async (tx) => {
     const shop = await tx.shop.findUnique({ where: { id } });
     if (!shop) return false;
@@ -53,6 +60,7 @@ export async function deleteShopAccount(form: FormData) {
   });
   const images = await db.productImage.findMany({ where: { shopId: id } });
   try {
+    if (shop.firebaseUid) await deleteFirebaseUser(shop.firebaseUid);
     for (const image of images) {
       await deleteStoredImage(id, image.storageKey, image.storageDriver);
       await db.productImage.deleteMany({ where: { id: image.id, shopId: id } });
@@ -73,11 +81,17 @@ export async function deleteShopAccount(form: FormData) {
 }
 export async function setShopAccess(_: { error: string; success?: string }, form: FormData) {
   const admin = await requireAdmin();
-  const parsed = z.object({ id: z.string().min(1), status: z.enum(["active", "pending", "suspended", "rejected"]), plan: z.enum(["trial", "paid", "legacy"]), until: z.union([z.literal(""), z.iso.date()]) }).safeParse(Object.fromEntries(form));
+  const parsed = z.object({ id: z.string().min(1), status: z.enum(["active", "unverified", "pending", "suspended", "rejected"]), plan: z.enum(["trial", "paid", "legacy"]), until: z.union([z.literal(""), z.iso.date()]) }).safeParse(Object.fromEntries(form));
   if (!parsed.success) return { error: "Chọn trạng thái và ngày hết hạn hợp lệ." };
   const { id, status, until, plan } = parsed.data;
   const accessUntil = until ? new Date(`${until}T23:59:59.999+07:00`) : null;
   if (status === "active" && (!accessUntil || accessUntil <= new Date())) return { error: "Ngày hết hạn phải từ hôm nay trở đi khi mở sử dụng." };
+  const target = await db.shop.findUnique({ where: { id } });
+  if (!target) return { error: "Không tìm thấy shop." };
+  if (target.emailVerificationRequired && !target.emailVerifiedAt && status === "active")
+    return { error: "Shop cần xác minh email trước khi mở sử dụng. Chọn Chờ xác minh email để cho phép khách tiếp tục xác minh." };
+  if (status === "unverified" && (!target.emailVerificationRequired || target.emailVerifiedAt))
+    return { error: "Shop này không cần xác minh email để sử dụng." };
   await db.$transaction(async (tx) => {
     const before = await tx.shop.findUniqueOrThrow({ where: { id } });
     if (before.plan === plan && before.accessStatus === status && (before.accessUntil?.getTime() ?? null) === (accessUntil?.getTime() ?? null)) return;

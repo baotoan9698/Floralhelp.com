@@ -875,6 +875,13 @@ dialog::backdrop {
   background: #30202d66;
   backdrop-filter: blur(3px);
 }
+.auth-text-button { margin-top: 14px; padding: 8px 0; background: transparent; border: 0; box-shadow: none; text-decoration: underline; }
+.auth-message { font-size: 14px; line-height: 1.6; padding: 12px; background: #eff6f1; border-radius: 8px; }
+.auth-verification { max-width: 520px; overflow-wrap: anywhere; }
+.auth-verification h2 { font-size: 23px; margin-top: 0; }
+.auth-verification p { line-height: 1.6; font-size: 15px; }
+.auth-verification-actions { display: grid; gap: 12px; margin-top: 20px; }
+.auth-verification-actions button { min-height: 44px; }
 .modal-head {
   display: flex;
   justify-content: space-between;

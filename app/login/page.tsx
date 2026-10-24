@@ -7,5 +7,5 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   if (await currentShop()) redirect("/");
   const { reason } = await searchParams;
   if (reason === "signed-out") redirect("/login");
-  return <AuthForm notice={reason === "password-changed" ? "Đã đổi mật khẩu. Vui lòng đăng nhập bằng mật khẩu mới." : accessMessages[reason ?? ""]} />;
+  return <AuthForm notice={reason === "email-verified" ? "Sau khi xác minh email thành công, hãy đăng nhập để bắt đầu sử dụng." : reason === "password-changed" ? "Vui lòng đăng nhập bằng mật khẩu mới sau khi hoàn tất đặt lại mật khẩu." : accessMessages[reason ?? ""]} />;
 }

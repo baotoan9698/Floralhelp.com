@@ -9,6 +9,9 @@ import { cookies } from "next/headers";
 import { db } from "./db";
 import { accessReason } from "./access";
 import { redirect } from "next/navigation";
+import { firebaseSessionValid } from "./firebase-auth";
+import { cache } from "react";
+const checkFirebaseSession = cache(firebaseSessionValid);
 const cookieName = "floralhelp_session";
 // Persistent browser cookie, refreshed during the shop's session check.
 const sessionCookieDays = 400;
@@ -24,6 +27,7 @@ export function hashPassword(password: string) {
 }
 export function verifyPassword(password: string, hash: string) {
   const [salt, key] = hash.split(":");
+  if (!salt || !key || !/^[a-f0-9]{128}$/i.test(key)) return false;
   return timingSafeEqual(
     Buffer.from(key, "hex"),
     scryptSync(password, salt, 64),
@@ -48,6 +52,16 @@ export async function shopSessionState(renewCookie = false) {
     include: { shop: true },
   });
   if (!session) return { shop: null, reason: "signed-out" };
+  if (session.shop.firebaseUid) {
+    try {
+      if (!(await checkFirebaseSession(session.shop.firebaseUid, session.shop.email, session.createdAt))) {
+        await db.session.deleteMany({ where: { id: session.id } });
+        return { shop: null, reason: "password-changed" };
+      }
+    } catch {
+      return { shop: null, reason: "auth-unavailable" };
+    }
+  }
   const reason = accessReason(session.shop);
   if (reason) {
     await db.session.deleteMany({ where: { shopId: session.shopId } });

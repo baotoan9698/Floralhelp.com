@@ -8,6 +8,10 @@ datasource db {
 }
 
 model Shop {
+  firebaseUid String? @unique
+  emailVerificationRequired Boolean @default(false)
+  emailVerifiedAt DateTime?
+  trialStartedAt DateTime?
   reminderEnabled Boolean @default(false)
   reminderMinutes Int @default(120)
   pushDevices PushDevice[]
@@ -31,6 +35,7 @@ model Shop {
 }
 
 model Session {
+  createdAt DateTime @default(now())
   id        String   @id
   shopId    String
   shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)

@@ -16,6 +16,7 @@ import { shopData } from "@/lib/shop-data";
 import { vietnamToday, vietnamTime } from "@/lib/dates";
 import type { OrderChange } from "@/lib/order-history";
 import { accessReason, accessMessages } from "@/lib/access";
+import { firebaseSignIn, setFirebasePassword } from "@/lib/firebase-auth";
 
 export async function getOrderHistory(orderId: string) {
   const data = await shopData();
@@ -23,65 +24,6 @@ export async function getOrderHistory(orderId: string) {
   return entries.map((entry) => ({ ...entry, createdAt: entry.createdAt.toISOString(), changes: JSON.parse(entry.changes) as OrderChange[] }));
 }
 
-export async function authenticate(_: { error: string }, form: FormData) {
-  const parsed = z
-    .object({
-      email: z.email().max(254),
-      password: z.string().min(10).max(128),
-      mode: z.enum(["login", "register"]),
-    })
-    .safeParse(Object.fromEntries(form));
-  if (!parsed.success)
-    return { error: "Nhập email hợp lệ và mật khẩu từ 10 đến 128 ký tự." };
-  const { password, mode } = parsed.data;
-  const email = parsed.data.email.toLowerCase().trim();
-  const name = String(form.get("name") ?? "").trim();
-  if (mode === "register" && (!name || name.length > 100))
-    return { error: "Tên shop cần từ 1 đến 100 ký tự." };
-  const key = email;
-  const previous = await db.authAttempt.findUnique({ where: { key } });
-  if (previous && previous.resetsAt <= new Date())
-    await db.authAttempt.deleteMany({
-      where: { key, resetsAt: { lte: new Date() } },
-    });
-  const attempt = await db.authAttempt.upsert({
-    where: { key },
-    create: { key, resetsAt: new Date(Date.now() + 15 * 60000) },
-    update: { count: { increment: 1 } },
-  });
-  if (attempt.count > 10)
-    return { error: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 15 phút." };
-  let shop;
-  try {
-    if (mode === "register") {
-      const createdAt = new Date();
-      shop = await db.shop.create({
-        data: { email, name, passwordHash: hashPassword(password), createdAt,
-          accessStatus: "active", accessUntil: new Date(createdAt.getTime() + 15 * 86400000) },
-      });
-    } else {
-      shop = await db.shop.findUnique({ where: { email } });
-      const fallback = "00000000000000000000000000000000:" + "00".repeat(64);
-      const valid = verifyPassword(password, shop?.passwordHash ?? fallback);
-      if (!shop || !valid) return { error: "Email hoặc mật khẩu không đúng." };
-    }
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    )
-      return { error: "Email này đã được đăng ký. Vui lòng đăng nhập." };
-    return { error: "Chưa thể kết nối. Vui lòng thử lại." };
-  }
-  await db.authAttempt.deleteMany({ where: { key } });
-  const reason = accessReason(shop);
-  if (reason) {
-    await db.session.deleteMany({ where: { shopId: shop.id } });
-    return { error: accessMessages[reason] ?? "Shop chưa được cấp quyền sử dụng." };
-  }
-  await createSession(shop.id);
-  redirect(mode === "register" ? "/welcome" : "/");
-}
 export async function logout() {
   await deleteSession();
   redirect("/login");
@@ -97,7 +39,12 @@ export async function changeShopPassword(form: FormData) {
   await db.authAttempt.deleteMany({ where: { key, resetsAt: { lte: new Date() } } });
   const attempt = await db.authAttempt.upsert({ where: { key }, create: { key, resetsAt: new Date(Date.now() + 900000) }, update: { count: { increment: 1 } } });
   if (attempt.count > 10) return { error: "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau 15 phút." };
-  if (!verifyPassword(currentPassword, shop.passwordHash)) return { error: "Mật khẩu hiện tại không đúng." };
+  if (shop.firebaseUid) {
+    try {
+      await firebaseSignIn(shop.email, currentPassword, shop.firebaseUid);
+      await setFirebasePassword(shop.firebaseUid, newPassword);
+    } catch { return { error: "Mật khẩu hiện tại không đúng hoặc dịch vụ xác thực chưa kết nối được." }; }
+  } else if (!verifyPassword(currentPassword, shop.passwordHash)) return { error: "Mật khẩu hiện tại không đúng." };
   const changed = await db.$transaction(async (tx) => {
     const result = await tx.shop.updateMany({ where: { id: shop.id, passwordHash: shop.passwordHash }, data: { passwordHash: hashPassword(newPassword) } });
     if (!result.count) return false;

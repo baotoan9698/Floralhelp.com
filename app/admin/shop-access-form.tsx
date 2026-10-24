@@ -23,7 +23,7 @@ export default function ShopAccessForm({ id, status, until, plan }: { id: string
   }} className="admin-access-form">
     <input name="id" type="hidden" value={id} />
     <label>Gói sử dụng<select name="plan" defaultValue={plan} key={plan}><option value="trial">Dùng thử</option><option value="paid">Trả phí</option><option value="legacy">Chưa phân loại</option></select></label>
-    <label>Trạng thái<select aria-label="Trạng thái" name="status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="pending">Chờ duyệt</option><option value="active">Cho phép sử dụng</option><option value="suspended">Tạm khóa</option><option value="rejected">Từ chối</option></select></label>
+    <label>Trạng thái<select aria-label="Trạng thái" name="status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}><option value="unverified">Chờ xác minh email</option><option value="pending">Chờ duyệt</option><option value="active">Cho phép sử dụng</option><option value="suspended">Tạm khóa</option><option value="rejected">Từ chối</option></select></label>
     <label>Sử dụng đến hết ngày<input type="date" name="until" value={selectedUntil} onChange={(event) => setSelectedUntil(event.target.value)} /></label>
     <button className="primary" disabled={pending}>{pending ? "Đang lưu…" : "Lưu quyền sử dụng"}</button>
     {state.error && <p className="error" role="alert">{state.error}</p>}{state.success && <p role="status">{state.success}</p>}

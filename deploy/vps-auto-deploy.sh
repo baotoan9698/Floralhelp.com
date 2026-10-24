@@ -28,6 +28,9 @@ ln -sfn /srv/floralhelp/shared/private-storage "$release/.private-storage"
 # Back up before applying database changes; never reset the database.
 /usr/local/sbin/floralhelp-backup
 runuser -u floralhelp -- npm run db:migrate
+if [[ "${FIREBASE_AUTH_ENABLED:-0}" == 1 && "${FIREBASE_IMPORT_LEGACY:-0}" == 1 ]]; then
+  runuser -u floralhelp -- node scripts/firebase-import-legacy.mjs --apply
+fi
 previous=$(readlink -f /srv/floralhelp/current)
 ln -sfn "$release" /srv/floralhelp/current.next
 mv -Tf /srv/floralhelp/current.next /srv/floralhelp/current

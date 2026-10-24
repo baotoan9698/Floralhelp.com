@@ -7,13 +7,13 @@ import { adminLogout } from "./actions";
 import ShopAccessForm from "./shop-access-form";
 import DeleteShop from "./delete-shop";
 import ResetPassword from "./reset-password";
-const labels: Record<string, string> = { active: "Đang hoạt động", expired: "Hết hạn", pending: "Chờ duyệt", suspended: "Tạm khóa", rejected: "Từ chối" };
+const labels: Record<string, string> = { unverified: "Chờ xác minh email", active: "Đang hoạt động", expired: "Hết hạn", pending: "Chờ duyệt", suspended: "Tạm khóa", rejected: "Từ chối" };
 const date = (value: Date) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", dateStyle: "short", timeStyle: "short" }).format(value);
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const admin = await requireAdmin();
   const { q = "" } = await searchParams;
   const shops = await db.shop.findMany({ where: q ? { OR: [{ name: { contains: q.slice(0, 100) } }, { email: { contains: q.slice(0, 100) } }] } : {}, orderBy: { createdAt: "desc" }, take: 100, include: { _count: { select: { orders: true, customers: true, products: true } }, adminEvents: { take: 5, orderBy: { createdAt: "desc" }, include: { admin: { select: { name: true } } } } } });
-  const all = await db.shop.findMany({select:{accessStatus:true,accessUntil:true,plan:true}});
+  const all = await db.shop.findMany({select:{accessStatus:true,accessUntil:true,plan:true,emailVerificationRequired:true,emailVerifiedAt:true}});
   const active = all.filter(shop=>!accessReason(shop)).length;
   const storage = await shopStorage(shops.map(shop=>shop.id));
   return <main className="admin-page"><header><div><h1>Quản trị shop</h1><p>{admin.name} · {admin.email}</p></div><form action={adminLogout}><button className="secondary">Đăng xuất admin</button></form></header>
